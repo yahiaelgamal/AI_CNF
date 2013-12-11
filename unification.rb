@@ -1,18 +1,19 @@
-class Operator
-  # sym belongs to [^ v => <=>]
-  def initialize(sym)
-    self.sym = sym
-  end
+#class Operator
+  ## sym belongs to [^ v => <=>]
+  #def initialize(sym)
+    #self.sym = sym
+  #end
 
-  def to_s
-    return self.sym
-  end
-end
+  #def to_s
+    #return self.sym
+  #end
+#end
 
-class Quant
+class Quantifier
   # kind is either an A or an E
+  attr_accessor :kind
   def initialize(kind)
-    self.kind = sym
+    self.kind = kind
   end
 
   def to_s
@@ -56,16 +57,16 @@ class Expression
 end
 
 class Sentence < Expression
-  
+
   attr_accessor :type, :vars
   # type is either ["atomic", "equiv", "neg", "op", "quant"]
-  # hash includes keys such as 
+  # hash includes keys such as
   #     predicate (in case of atomic),
   #     term1, term2 (in case of equiv)
   #     sentence (in case of neg)
   #     sentence1, sentence2, op (in case of "op")
   #     quant, variable, sentence (in case of quan)
-  #     
+  #
   def initialize(type, vars={})
     @type = type
     @vars= vars
@@ -94,6 +95,9 @@ class Sentence < Expression
       unless vars.include?(:quant) && vars.include?(:variable) && vars.include?(:sentence)
         throw "Vars must include :quant, :variable, :sentence , it has #{@vars.keys}"
       end
+      unless vars[:variable].is_a? Variable
+        throw "vars[:variable] is of class variable, it is a #{vars[:variable].class.name}"
+      end
     end
   end
 
@@ -106,9 +110,9 @@ class Sentence < Expression
     when "neg"
       return "\u00AC(#{@vars[:sentence].to_s})"
     when "op"
-      return "#{@vars[:sentence1].to_s} #{@vars[:op].to_s} #{@vars[:sentence2].to_s}"
+      return "(#{@vars[:sentence1].to_s}) #{@vars[:op].to_s} (#{@vars[:sentence2].to_s})"
     when "quant"
-      return "#{@vars[:quant].to_s} #{@vars[:variable].to_s} #{@vars[:sentence].to_s}"
+      return "#{@vars[:quant].to_s}#{@vars[:variable].to_s}[#{@vars[:sentence].to_s}]"
     end
   end
 end
@@ -172,7 +176,7 @@ class Variable < Term
   include Comparable
 
   attr_accessor :name
-  
+
   def initialize name
     @name = name
   end
@@ -201,7 +205,18 @@ module CNF_Converter
   def self.eliminate_equiv(sentence)
     vars = sentence.vars
     case sentence.type
-    when "equiv"
+    when 'atomic'
+      return sentence
+    when 'equiv'
+      return sentence
+    when 'neg'
+      vars[:sentence] = eliminate_equiv(vars[:sentence])
+      return sentence
+    when 'op'
+      if vars[:op] != '<=>'
+        return sentence
+      end
+
       old_phi = vars[:sentence1]
       old_shi = vars[:sentence2]
 
@@ -217,7 +232,9 @@ module CNF_Converter
         sentence2: sentence2
       }
       return Sentence.new("op", new_hash)
-      eliminate_equiv(hash['term1'])
+    when 'quant'
+      vars[:sentence] = eliminate_equiv(vars[:sentence])
+      return sentence
     else
       return sentence
     end
