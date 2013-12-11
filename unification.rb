@@ -117,7 +117,7 @@ class Unifier
     t = unify1 e1, e2, []
     puts "RESULT"
     #puts t.join "|"
-    anchor(t)
+    anchor t
   end
 
   def listify e
@@ -240,7 +240,7 @@ p2 = Predicate.new 'P', [f2, v, v]
 unifier = Unifier.new
 p p1
 p p2
-puts unifier.unify p1, p2
+p unifier.unify p1, p2
 
 
 #example 2
@@ -256,7 +256,7 @@ p2 = Predicate.new 'P', [z, z, u]
 unifier = Unifier.new
 p p1
 p p2
-puts unifier.unify p1, p2
+p unifier.unify p1, p2
 
 #example 3
 puts "="*50
@@ -273,4 +273,4 @@ f2 = Predicate.new 'f', [g4, g3, z]
 unifier = Unifier.new
 p p1
 p p2
-puts unifier.unify f1, f2
+p unifier.unify f1, f2
