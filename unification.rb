@@ -150,6 +150,10 @@ class Predicate < Term
   def to_s
     "#{@name.to_s}(#{@terms.join ', '})"
   end
+
+  def to_sentence
+    Sentence.new('atomic', {predicate: self})
+  end
 end
 
 class Constant < Term
@@ -210,7 +214,7 @@ end
 module CNF_Converter
   def self.eliminate_equiv(old_sentence)
     # incredibliy inefficient. but who cares, this is ruby after all
-    sentence = Marshal.load( Marshal.dump(old_sentence) ) 
+    sentence = Marshal.load( Marshal.dump(old_sentence) )
     vars = sentence.vars
     case sentence.type
     when 'atomic'
@@ -251,7 +255,7 @@ module CNF_Converter
   end
 
   def self.eliminate_impl(old_sentence)
-    sentence = Marshal.load( Marshal.dump(old_sentence) ) 
+    sentence = Marshal.load( Marshal.dump(old_sentence) )
     vars = sentence.vars
     case sentence.type
     when 'atomic'
@@ -282,6 +286,76 @@ module CNF_Converter
       vars[:sentence] = eliminate_impl(vars[:sentence])
       return sentence
     else
+      return sentence
+    end
+  end
+
+  def self.push_neg_inwards(old_sentence)
+    sentence = Marshal.load( Marshal.dump(old_sentence) )
+    vars = sentence.vars
+    case sentence.type
+    when 'atomic'
+      return sentence
+    when 'equiv'
+      return sentence
+    when 'neg'
+      #puts 'IT IS A NEG['
+      #puts sentence
+      if vars[:sentence].type != 'atomic' && vars[:sentence].type != 'equiv'
+        sentence = propagate_neg(vars[:sentence])
+        #puts "sentence now is #{sentence}"
+        vars = sentence.vars
+        sentence = push_neg_inwards(sentence)
+      end
+      #puts ']'
+      return sentence
+    when 'op'
+      vars[:sentence1] = push_neg_inwards(vars[:sentence1])
+      vars[:sentence2] = push_neg_inwards(vars[:sentence2])
+      return sentence
+    when 'quant'
+      vars[:sentence] = push_neg_inwards(vars[:sentence])
+      return sentence
+    else
+      return sentence
+    end
+  end
+
+  def self.propagate_neg(old_sentence)
+    sentence = Marshal.load( Marshal.dump(old_sentence) )
+    vars = sentence.vars
+
+    case sentence.type
+    when 'atomic'
+      sentence = S.new('neg', {sentence: sentence})
+      return sentence
+    when 'equiv'
+      sentence = S.new('neg', {sentence: sentence})
+      return sentence
+    when 'neg'
+      sentence = vars[:sentence]
+      return sentence
+    when 'op'
+      case vars[:op]
+      when '^'
+        vars[:op] = 'v'
+        vars[:sentence1] = S.new('neg', {sentence: vars[:sentence1]})
+        vars[:sentence2] = S.new('neg', {sentence: vars[:sentence2]})
+      when 'v'
+        vars[:op] = '^'
+        vars[:sentence1] = S.new('neg', {sentence: vars[:sentence1]})
+        vars[:sentence2] = S.new('neg', {sentence: vars[:sentence2]})
+      end
+      return sentence
+    when 'quant'
+      case vars[:quant].kind
+      when 'A'
+        vars[:quant] = Quantifier.new('E')
+        vars[:sentence] = S.new('neg', {sentence: vars[:sentence]})
+      when 'E'
+        vars[:quant] = Quantifier.new('A')
+        vars[:sentence] = S.new('neg', {sentence: vars[:sentence]})
+      end
       return sentence
     end
   end

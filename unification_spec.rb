@@ -136,7 +136,7 @@ describe CNF_Converter do
     end
   end
 
-  describe '=> Elimination' do 
+  describe '=> Elimination' do
     it 'should do it simply' do
       x = V.new('x')
       y = V.new('y')
@@ -149,7 +149,7 @@ describe CNF_Converter do
       new_sen.to_s.should == "(#{@neg}(p(x))) v (q(x))"
     end
 
-    it 'should do it not very simply' do 
+    it 'should do it not very simply' do
       x = V.new('x')
       y = V.new('y')
       p_x = P.new('P', [x])
@@ -163,14 +163,12 @@ describe CNF_Converter do
         sentence1: S.new('atomic', {predicate: q_y}),
         sentence2: S.new('atomic', {predicate: r_y_x})})
 
-      puts sen3
       #∃y[Q(y) ∧ R(y, x)]
       sen2 = S.new('quant', {
         quant: Q.new('E'),
         variable: y,
         sentence: sen3
       })
-      puts sen2
 
       # (Q(x) ∧ ∃y[Q(y) ∧ R(y, x)])
       sen1 = S.new('op', {
@@ -178,16 +176,14 @@ describe CNF_Converter do
         sentence1: S.new('atomic', {predicate: q_x}),
         sentence2: sen2
       })
-      puts sen1
 
       # (P(x) ⇒ (Q(x) ∧ ∃y[Q(y) ∧ R(y, x)]))
       sentence = S.new('op', {
-        op: '=>', 
+        op: '=>',
         sentence1: S.new('atomic', {predicate: p_x}),
         sentence2: sen1
       })
 
-      puts sentence
       new_sen = CNF_Converter.eliminate_impl(sentence)
       new_sen.to_s.should == "(#{@neg}(P(x))) v ((Q(x)) ^ (#{@te}y[(Q(y)) ^ (R(y, x))]))"
     end
@@ -200,7 +196,114 @@ describe CNF_Converter do
       sentence2.to_s.should_not == sentence1.to_s
 
       sentence2.to_s.should == "#{@fa}x[((#{@neg}(P(x))) v ((Q(x)) ^ (#{@te}y[(Q(y)) ^ (R(y, x))]))) ^ ((#{@neg}((Q(x)) ^ (#{@te}y[(Q(y)) ^ (R(y, x))]))) v (P(x)))]"
+    end
+  end
 
+  describe 'push neg inwards' do
+    it 'should_propgate neg with' do
+      x = V.new('x')
+      y = V.new('y')
+      f_y = P.new('f', [y])
+      f_x = P.new('f', [x])
+      phi = S.new('atomic', {predicate: f_x})
+      shi = S.new('atomic', {predicate: f_y})
+
+      new_phi = CNF_Converter.propagate_neg(phi)
+      new_phi.to_s.should == "#{@neg}(f(x))"
+
+      # (f(x)) ^ (f(y))
+      conj = S.new('op', {op: '^', sentence1: phi, sentence2: shi})
+      neg_conj = CNF_Converter.propagate_neg(conj)
+      # (f(x)) ^ (f(y))
+      neg_conj.to_s.should == "(#{@neg}(f(x))) v (#{@neg}(f(y)))"
+    end
+
+    it 'should eliminate simple' do
+      x = V.new('x')
+      y = V.new('y')
+      f_y = P.new('f', [y])
+      f_x = P.new('f', [x])
+      phi = S.new('atomic', {predicate: f_x})
+      shi = S.new('atomic', {predicate: f_y})
+      neg_shi = S.new('neg', {sentence: shi})
+      neg_phi = S.new('neg', {sentence: phi})
+
+      # ¬(¬(f(x)))
+      sentence = S.new('neg', {sentence: S.new('neg', {sentence: phi})})
+      new_sen = CNF_Converter.push_neg_inwards(sentence)
+      new_sen.to_s.should == 'f(x)'
+
+      # ¬((f(x)) v (f(y)))
+      sentence = S.new('neg', {sentence: S.new('op', {op: 'v',
+                                               sentence1: phi,
+                                               sentence2: shi })})
+      new_sen = CNF_Converter.push_neg_inwards(sentence)
+      new_sen.to_s.should == "(#{@neg}(f(x))) ^ (#{@neg}(f(y)))"
+
+      # ¬((f(x)) v (¬(f(y))))
+      sentence = S.new('neg', {sentence: S.new('op', {op: 'v',
+                                               sentence1: phi,
+                                               sentence2: neg_shi })})
+      new_sen = CNF_Converter.push_neg_inwards(sentence)
+      new_sen.to_s.should == "(#{@neg}(f(x))) ^ (f(y))"
+
+      # ¬((¬(f(x))) v (¬(f(y))))
+      sentence = S.new('neg', {sentence: S.new('op', {op: 'v',
+                                               sentence1: neg_phi,
+                                               sentence2: neg_shi })})
+      new_sen = CNF_Converter.push_neg_inwards(sentence)
+      new_sen.to_s.should == "(f(x)) ^ (f(y))"
+
+      # ¬(∀x[f(x)])
+      all_phi = S.new('quant', {quant: Q.new('A'), variable: x, sentence: phi})
+      sentence = S.new('neg', {sentence: all_phi})
+      new_sen = CNF_Converter.push_neg_inwards(sentence)
+      new_sen.to_s.should == "#{@te}x[#{@neg}(f(x))]"
+
+    end
+
+    it 'should do a medium one' do
+      x = V.new('x')
+      y = V.new('y')
+
+      q_x = P.new('Q', [x]).to_sentence
+      q_y = P.new('Q', [y]).to_sentence
+      r_y_x = P.new('R', [y, x]).to_sentence
+      p_x = P.new('P', [x]).to_sentence
+
+
+      # ∃y[Q(y) ∧ R(y, x)]
+      sen3 = S.new('quant', {
+        quant: Q.new('E'),
+        variable: y,
+        sentence: S.new('op', {op: '^', sentence1: q_y, sentence2: r_y_x})
+      })
+
+      # Q(x) ∧ ∃y[Q(y)   ∧ R(y, x)]
+      sen2 = S.new('op', {op: '^', sentence1: q_x, sentence2: sen3 })
+
+      # ¬(Q(x) ∧ ∃y[Q(y) ∧ R(y, x)])
+      sen1 = S.new('neg', {sentence: sen2})
+
+      # (¬(Q(x) ∧ ∃y[Q(y) ∧ R(y, x)])     ∨    P(x))
+      sentence = S.new('op', {
+        op: 'v',
+        sentence1: sen1,
+        sentence2: p_x
+      })
+
+      new_sen = CNF_Converter.push_neg_inwards(sentence)
+      new_sen.to_s.should == "((#{@neg}(Q(x))) v (#{@fa}y[(#{@neg}(Q(y))) v (#{@neg}(R(y, x)))])) v (P(x))"
+
+    end
+
+    it 'should do like lecture 7 slide 11' do
+
+      sentence = make_lec7_sen
+      sentence1 = CNF_Converter.eliminate_equiv(sentence)
+      sentence2 = CNF_Converter.eliminate_impl(sentence1)
+      sentence3 = CNF_Converter.push_neg_inwards(sentence2)
+      sentence3.to_s.should == "#{@fa}x[((#{@neg}(P(x))) v ((Q(x)) ^ (#{@te}y[(Q(y)) ^ (R(y, x))]))) ^ (((#{@neg}(Q(x))) v (#{@fa}y[(#{@neg}(Q(y))) v (#{@neg}(R(y, x)))])) v (P(x)))]"
     end
   end
 end
