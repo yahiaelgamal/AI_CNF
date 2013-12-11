@@ -1,3 +1,5 @@
+require 'deep_clone'
+
 #class Operator
   ## sym belongs to [^ v => <=>]
   #def initialize(sym)
@@ -90,6 +92,10 @@ class Sentence < Expression
     when "op"
       unless vars.include?(:op) && vars.include?(:sentence1) && vars.include?(:sentence2)
         throw "Vars must include :sentence1, :sentence2, :op , it has #{@vars.keys}"
+      end
+      unless vars[:sentence1].is_a?(Sentence) && vars[:sentence2].is_a?(Sentence)
+        throw "vars[:sentence1] and vars[:sentence2] are not both Sentence they are\
+        #{vars[:sentence1].class.name} and #{vars[:sentence2].class.name}"
       end
     when "quant"
       unless vars.include?(:quant) && vars.include?(:variable) && vars.include?(:sentence)
@@ -202,7 +208,9 @@ end
 
 
 module CNF_Converter
-  def self.eliminate_equiv(sentence)
+  def self.eliminate_equiv(old_sentence)
+    # incredibliy inefficient. but who cares, this is ruby after all
+    sentence = Marshal.load( Marshal.dump(old_sentence) ) 
     vars = sentence.vars
     case sentence.type
     when 'atomic'
@@ -214,6 +222,8 @@ module CNF_Converter
       return sentence
     when 'op'
       if vars[:op] != '<=>'
+        vars[:sentence1] = eliminate_equiv(vars[:sentence1])
+        vars[:sentence2] = eliminate_equiv(vars[:sentence2])
         return sentence
       end
 
@@ -234,6 +244,42 @@ module CNF_Converter
       return Sentence.new("op", new_hash)
     when 'quant'
       vars[:sentence] = eliminate_equiv(vars[:sentence])
+      return sentence
+    else
+      return sentence
+    end
+  end
+
+  def self.eliminate_impl(old_sentence)
+    sentence = Marshal.load( Marshal.dump(old_sentence) ) 
+    vars = sentence.vars
+    case sentence.type
+    when 'atomic'
+      return sentence
+    when 'equiv'
+      return sentence
+    when 'neg'
+      vars[:sentence] = eliminate_impl(vars[:sentence])
+      return sentence
+    when 'op'
+      if vars[:op] != '=>'
+        vars[:sentence1] = eliminate_impl(vars[:sentence1])
+        vars[:sentence2] = eliminate_impl(vars[:sentence2])
+        return sentence
+      end
+
+      old_phi = vars[:sentence1]
+      old_shi = vars[:sentence2]
+
+      phi = eliminate_impl(old_phi)
+      not_phi = Sentence.new('neg', {sentence: phi})
+      shi = eliminate_impl(old_shi)
+
+      sentence1 = Sentence.new('op', {op: 'v', sentence1: not_phi, sentence2: shi})
+
+      return sentence1
+    when 'quant'
+      vars[:sentence] = eliminate_impl(vars[:sentence])
       return sentence
     else
       return sentence
