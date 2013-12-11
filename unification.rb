@@ -199,11 +199,11 @@ end
 
 module CNF_Converter
   def self.eliminate_equiv(sentence)
-    hash = sentence.hash
+    vars = sentence.vars
     case sentence.type
     when "equiv"
-      old_phi = hash[:sentence1]
-      old_shi = hash[:sentence2]
+      old_phi = vars[:sentence1]
+      old_shi = vars[:sentence2]
 
       phi = eliminate_equiv(old_phi)
       shi = eliminate_equiv(old_shi)
@@ -213,8 +213,8 @@ module CNF_Converter
 
       new_hash = {
         op: '^',
-        sentence1: eliminate_equiv(hash[:sentence1]),
-        sentence2: eliminate_equiv(hash[:sentence2]),
+        sentence1: sentence1,
+        sentence2: sentence2
       }
       return Sentence.new("op", new_hash)
       eliminate_equiv(hash['term1'])
@@ -233,6 +233,7 @@ module CNF_Converter
     sentence2 = Sentence.new('op', {op: '<=>', sentence1: Sentence.new('atomic', {predicate: f_y}), sentence2: Sentence.new('atomic', {predicate: g_y})})
     puts sentence2
   end
+
 end
 
 
