@@ -339,4 +339,19 @@ describe CNF_Converter do
       sentence4.to_s.should == "#{@fa}x[((#{@neg}(P(x))) v ((Q(x)) ^ (#{@te}y[(Q(y)) ^ (R(y, x))]))) ^ (((#{@neg}(Q(x))) v (#{@fa}m[(#{@neg}(Q(m))) v (#{@neg}(R(m, x)))])) v (P(x)))]"
     end
   end
+
+  describe 'skolemize' do 
+    it 'should do it simple' do 
+
+      y = V.new('y')
+      f_y = P.new('f', [y]).to_sentence
+
+      sen2 = S.new('quant', {quant: 'E', variable: 'y', sentence: f_y })
+
+      # FA x2 [TEy f(y)] 
+      sen1 = S.new('quant', {quant: 'A', variable: 'x2', sentence: sen2})
+      # FA x1[FA x2 [TEy] ] 
+      sentence = S.new('quant', {quant: 'A', variable: 'x1', sentence: sen1})
+    end
+  end
 end
