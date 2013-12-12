@@ -101,7 +101,11 @@ class Sentence < Expression
         throw "Vars must include :quant, :variable, :sentence , it has #{@vars.keys}"
       end
       unless vars[:variable].is_a? Variable
-        throw "vars[:variable] is of class variable, it is a #{vars[:variable].class.name}"
+        throw "vars[:variable] is not of class variable, it is a #{vars[:variable].class.name}"
+      end
+
+      unless vars[:quant].is_a? Quantifier
+        throw "vars[:quant] is not of class Quantifier, it is a #{vars[:variable].class.name}"
       end
     end
   end
@@ -400,6 +404,7 @@ module CNF_Converter
       return sentence
     when 'neg'
       vars[:sentence] = skolemize(vars[:sentence], global_vars.dup, used_skolem_names)
+      return sentence
     when 'op'
       vars[:sentence1] = skolemize(vars[:sentence1], global_vars.dup, used_skolem_names)
       vars[:sentence2] = skolemize(vars[:sentence2], global_vars.dup, used_skolem_names)
@@ -411,8 +416,8 @@ module CNF_Converter
       else
         skolem_func_name = make_a_skolem_func_name(used_skolem_names)
         new_predicate = Predicate.new(skolem_func_name, global_vars)
-        replace_var!(vars[:sentence], old_term, new_term)
-        vars[:sentence] = skolemize(vars[:sentence], global_vars.dup, used_skolem_names)
+        replace_term!(vars[:sentence], vars[:variable], new_predicate)
+        sentence = skolemize(vars[:sentence], global_vars.dup, used_skolem_names)
       end
       return sentence
     else
@@ -446,6 +451,31 @@ module CNF_Converter
     end
   end
 
+  def self.discard_for_all(old_sentence)
+    sentence = Marshal.load( Marshal.dump(old_sentence) )
+    vars = sentence.vars
+    case sentence.type
+    when 'atomic'
+      return sentence
+    when 'equiv'
+      return sentence
+    when 'neg'
+      vars[:sentence] = discard_for_all(vars[:sentence])
+      return sentence
+    when 'op'
+      vars[:sentence1] = discard_for_all(vars[:sentence1])
+      vars[:sentence2] = discard_for_all(vars[:sentence2])
+      return sentence
+    when 'quant'
+      if vars[:quant].kind == 'A'
+        vars[:sentence] = discard_for_all(vars[:sentence])
+      else
+        throw 'you are in the wrong step, you must skolemize first'
+      end
+      return vars[:sentence]
+    end
+  end
+
   def self.make_a_new_name(used_variables)
     names = used_variables.map{|var| var.name}
     name = %w[m n o p q r s t u v w x y z].find {|name| !names.include?(name)}
@@ -453,19 +483,8 @@ module CNF_Converter
   end
 
   def self.make_a_skolem_func_name(used_names)
-    name = %w[sk sk1 sk2 sk3 sk4 sk5 sk6 sk7 sk8 sk9 sk10].skind {|name| !names.include?(name)}
+    name = %w[sk sk1 sk2 sk3 sk4 sk5 sk6 sk7 sk8 sk9 sk10].find {|name| !used_names.include?(name)}
     return name
-  end
-
-  def self.test_print
-    y = Variable.new('y')
-    f_y = Predicate.new('f', [y])
-    sentence = Sentence.new('neg', {sentence: Sentence.new('atomic', {predicate: f_y})})
-    puts sentence
-
-    g_y = Predicate.new('g', [y])
-    sentence2 = Sentence.new('op', {op: '<=>', sentence1: Sentence.new('atomic', {predicate: f_y}), sentence2: Sentence.new('atomic', {predicate: g_y})})
-    puts sentence2
   end
 
 end

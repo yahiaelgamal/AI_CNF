@@ -308,12 +308,12 @@ describe CNF_Converter do
   end
 
   describe 'standarize apart' do
-    it 'should change variables' do 
+    it 'should change variables' do
       x = V.new('x')
       y = V.new('y')
       f_y = P.new('f', [y]).to_sentence
       g_y = P.new('g', [y]).to_sentence
-      
+
 
       # FAy g(y)
       right = S.new('quant', {quant: Q.new('A'), variable: y, sentence: g_y})
@@ -323,14 +323,14 @@ describe CNF_Converter do
 
       # FAx [TEy [f(y)]]
       left = S.new('quant', {quant: Q.new('A'), variable: x, sentence: sen2})
-      
+
       # FAx [TEy [f(y)]] ^ FAy g(y)
       sen = S.new('op', {op: '^', sentence1: left, sentence2: right})
       new_sen = CNF_Converter.standardize_apart(sen, [])
       new_sen.to_s.should == "(#{@fa}x[#{@te}y[f(y)]]) ^ (#{@fa}m[g(m)])"
     end
 
-    it 'should do it like lecture 7' do 
+    it 'should do it like lecture 7' do
       sentence = make_lec7_sen
       sentence1 = CNF_Converter.eliminate_equiv(sentence)
       sentence2 = CNF_Converter.eliminate_impl(sentence1)
@@ -340,18 +340,62 @@ describe CNF_Converter do
     end
   end
 
-  describe 'skolemize' do 
-    it 'should do it simple' do 
+  describe 'skolemize' do
+    it 'should do it simple' do
 
       y = V.new('y')
       f_y = P.new('f', [y]).to_sentence
 
-      sen2 = S.new('quant', {quant: 'E', variable: 'y', sentence: f_y })
+      sen2 = S.new('quant', {quant: Q.new('E'), variable: y, sentence: f_y })
 
-      # FA x2 [TEy f(y)] 
-      sen1 = S.new('quant', {quant: 'A', variable: 'x2', sentence: sen2})
-      # FA x1[FA x2 [TEy] ] 
-      sentence = S.new('quant', {quant: 'A', variable: 'x1', sentence: sen1})
+      # FA x2 [TEy f(y)]
+      sen1 = S.new('quant', {quant: Q.new('A'), variable: V.new('x2'), sentence: sen2})
+      # FA x1[FA x2 [TEy] ]
+      sentence = S.new('quant', {quant: Q.new('A'), variable: V.new('x1'), sentence: sen1})
+
+      new_sen = CNF_Converter.skolemize(sentence, [], [])
+      new_sen.to_s.should == "#{@fa}x1[#{@fa}x2[f(sk(x1, x2))]]"
     end
+
+    it 'should do it like in the lecture' do
+      sentence = make_lec7_sen
+      sentence1 = CNF_Converter.eliminate_equiv(sentence)
+      sentence2 = CNF_Converter.eliminate_impl(sentence1)
+      sentence3 = CNF_Converter.push_neg_inwards(sentence2)
+      sentence4 = CNF_Converter.standardize_apart(sentence3, [])
+      sentence5 = CNF_Converter.skolemize(sentence4, [], [])
+      sentence5.to_s.should == "#{@fa}x[((#{@neg}(P(x))) v ((Q(x)) ^ ((Q(sk(x))) ^ (R(sk(x), x))))) ^ (((#{@neg}(Q(x))) v (#{@fa}m[(#{@neg}(Q(m))) v (#{@neg}(R(m, x)))])) v (P(x)))]"
+    end
+  end
+
+  describe 'describe discard for all' do
+    it 'should do it simple' do
+      y = V.new('y')
+      f_y = P.new('f', [y]).to_sentence
+
+      sen2 = S.new('quant', {quant: Q.new('E'), variable: y, sentence: f_y })
+
+      # FA x2 [TEy f(y)]
+      sen1 = S.new('quant', {quant: Q.new('A'), variable: V.new('x2'), sentence: sen2})
+      # FA x1[FA x2 [TEy] ]
+      sentence = S.new('quant', {quant: Q.new('A'), variable: V.new('x1'), sentence: sen1})
+
+      new_sen = CNF_Converter.skolemize(sentence, [], [])
+
+      to_be_tested = CNF_Converter.discard_for_all(new_sen)
+      to_be_tested.to_s.should == "f(sk(x1, x2))"
+    end
+
+    it 'should do like lecture 7 ' do
+      sentence = make_lec7_sen
+      sentence1 = CNF_Converter.eliminate_equiv(sentence)
+      sentence2 = CNF_Converter.eliminate_impl(sentence1)
+      sentence3 = CNF_Converter.push_neg_inwards(sentence2)
+      sentence4 = CNF_Converter.standardize_apart(sentence3, [])
+      sentence5 = CNF_Converter.skolemize(sentence4, [], [])
+      sentence6 = CNF_Converter.discard_for_all(sentence5)
+      sentence6.to_s.should == "((#{@neg}(P(x))) v ((Q(x)) ^ ((Q(sk(x))) ^ (R(sk(x), x))))) ^ (((#{@neg}(Q(x))) v ((#{@neg}(Q(m))) v (#{@neg}(R(m, x))))) v (P(x)))"
+    end
+
   end
 end
