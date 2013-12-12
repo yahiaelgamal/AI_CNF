@@ -59,7 +59,6 @@ class Expression
 end
 
 class Sentence < Expression
-
   attr_accessor :type, :vars
   # type is either ["atomic", "equiv", "neg", "op", "quant"]
   # hash includes keys such as
@@ -192,7 +191,7 @@ class Variable < Term
   end
 
   def <=>(another_var)
-    if @name == another_var.name
+    if another_var.is_a?(Variable) && @name == another_var.name
       0
     else
       1
@@ -290,37 +289,6 @@ module CNF_Converter
     end
   end
 
-  def self.push_neg_inwards(old_sentence)
-    sentence = Marshal.load( Marshal.dump(old_sentence) )
-    vars = sentence.vars
-    case sentence.type
-    when 'atomic'
-      return sentence
-    when 'equiv'
-      return sentence
-    when 'neg'
-      #puts 'IT IS A NEG['
-      #puts sentence
-      if vars[:sentence].type != 'atomic' && vars[:sentence].type != 'equiv'
-        sentence = propagate_neg(vars[:sentence])
-        #puts "sentence now is #{sentence}"
-        vars = sentence.vars
-        sentence = push_neg_inwards(sentence)
-      end
-      #puts ']'
-      return sentence
-    when 'op'
-      vars[:sentence1] = push_neg_inwards(vars[:sentence1])
-      vars[:sentence2] = push_neg_inwards(vars[:sentence2])
-      return sentence
-    when 'quant'
-      vars[:sentence] = push_neg_inwards(vars[:sentence])
-      return sentence
-    else
-      return sentence
-    end
-  end
-
   def self.propagate_neg(old_sentence)
     sentence = Marshal.load( Marshal.dump(old_sentence) )
     vars = sentence.vars
@@ -358,6 +326,135 @@ module CNF_Converter
       end
       return sentence
     end
+  end
+
+  def self.push_neg_inwards(old_sentence)
+    sentence = Marshal.load( Marshal.dump(old_sentence) )
+    vars = sentence.vars
+    case sentence.type
+    when 'atomic'
+      return sentence
+    when 'equiv'
+      return sentence
+    when 'neg'
+      #puts 'IT IS A NEG['
+      #puts sentence
+      if vars[:sentence].type != 'atomic' && vars[:sentence].type != 'equiv'
+        sentence = propagate_neg(vars[:sentence])
+        #puts "sentence now is #{sentence}"
+        vars = sentence.vars
+        sentence = push_neg_inwards(sentence)
+      end
+      #puts ']'
+      return sentence
+    when 'op'
+      vars[:sentence1] = push_neg_inwards(vars[:sentence1])
+      vars[:sentence2] = push_neg_inwards(vars[:sentence2])
+      return sentence
+    when 'quant'
+      vars[:sentence] = push_neg_inwards(vars[:sentence])
+      return sentence
+    else
+      return sentence
+    end
+  end
+
+  def self.standardize_apart(old_sentence, used_variables)
+
+    sentence = Marshal.load( Marshal.dump(old_sentence) )
+    vars = sentence.vars
+    case sentence.type
+    when 'atomic'
+      return sentence
+    when 'equiv'
+      return sentence
+    when 'neg'
+      vars[:sentence] = standardize_apart(vars[:sentence], used_variables)
+      return sentence
+    when 'op'
+      vars[:sentence1] = standardize_apart(vars[:sentence1], used_variables)
+      vars[:sentence2] = standardize_apart(vars[:sentence2], used_variables)
+      return sentence
+    when 'quant'
+      if used_variables.include? vars[:variable]
+        new_name = make_a_new_name(used_variables)
+        old_term = Variable.new(vars[:variable].name)
+        vars[:variable].name = new_name
+        replace_term!(vars[:sentence], old_term, Variable.new(new_name))
+      else
+        used_variables << vars[:variable]
+      end
+      vars[:sentence] = standardize_apart(vars[:sentence], used_variables)
+    else
+    end
+    return sentence
+  end
+
+  def self.skolemize(old_sentence, global_vars, used_skolem_names)
+    sentence = Marshal.load( Marshal.dump(old_sentence) )
+    vars = sentence.vars
+    case sentence.type
+    when 'atomic'
+      return sentence
+    when 'equiv'
+      return sentence
+    when 'neg'
+      vars[:sentence] = skolemize(vars[:sentence], global_vars.dup, used_skolem_names)
+    when 'op'
+      vars[:sentence1] = skolemize(vars[:sentence1], global_vars.dup, used_skolem_names)
+      vars[:sentence2] = skolemize(vars[:sentence2], global_vars.dup, used_skolem_names)
+      return sentence
+    when 'quant'
+      if vars[:quant].kind == 'A'
+        global_vars << vars[:variable]
+        vars[:sentence] = skolemize(vars[:sentence], global_vars.dup, used_skolem_names)
+      else
+        skolem_func_name = make_a_skolem_func_name(used_skolem_names)
+        new_predicate = Predicate.new(skolem_func_name, global_vars)
+        replace_var!(vars[:sentence], old_term, new_term)
+        vars[:sentence] = skolemize(vars[:sentence], global_vars.dup, used_skolem_names)
+      end
+      return sentence
+    else
+      return sentence
+    end
+  end
+
+  def self.replace_term!(sentence, old_term, new_term)
+    vars = sentence.vars
+    case sentence.type
+    when 'atomic'
+      predicate = vars[:predicate]
+      predicate.terms = predicate.terms.map do |term|
+        if term == old_term
+          new_term
+        else
+          term
+        end
+      end
+    when 'equiv'
+      replace_term!(vars[:term1], old_term, new_term)
+      replace_term!(vars[:term2], old_term, new_term)
+    when 'neg'
+      replace_term!(vars[:sentence], old_term, new_term)
+    when 'op'
+      replace_term!(vars[:sentence1], old_term, new_term)
+      replace_term!(vars[:sentence2], old_term, new_term)
+    when 'quant'
+      replace_term!(vars[:sentence], old_term, new_term)
+    else
+    end
+  end
+
+  def self.make_a_new_name(used_variables)
+    names = used_variables.map{|var| var.name}
+    name = %w[m n o p q r s t u v w x y z].find {|name| !names.include?(name)}
+    return name
+  end
+
+  def self.make_a_skolem_func_name(used_names)
+    name = %w[sk sk1 sk2 sk3 sk4 sk5 sk6 sk7 sk8 sk9 sk10].skind {|name| !names.include?(name)}
+    return name
   end
 
   def self.test_print

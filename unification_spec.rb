@@ -306,4 +306,37 @@ describe CNF_Converter do
       sentence3.to_s.should == "#{@fa}x[((#{@neg}(P(x))) v ((Q(x)) ^ (#{@te}y[(Q(y)) ^ (R(y, x))]))) ^ (((#{@neg}(Q(x))) v (#{@fa}y[(#{@neg}(Q(y))) v (#{@neg}(R(y, x)))])) v (P(x)))]"
     end
   end
+
+  describe 'standarize apart' do
+    it 'should change variables' do 
+      x = V.new('x')
+      y = V.new('y')
+      f_y = P.new('f', [y]).to_sentence
+      g_y = P.new('g', [y]).to_sentence
+      
+
+      # FAy g(y)
+      right = S.new('quant', {quant: Q.new('A'), variable: y, sentence: g_y})
+
+      # TEy [f(y)]
+      sen2 = S.new('quant', {quant: Q.new('E'), variable: y, sentence: f_y})
+
+      # FAx [TEy [f(y)]]
+      left = S.new('quant', {quant: Q.new('A'), variable: x, sentence: sen2})
+      
+      # FAx [TEy [f(y)]] ^ FAy g(y)
+      sen = S.new('op', {op: '^', sentence1: left, sentence2: right})
+      new_sen = CNF_Converter.standardize_apart(sen, [])
+      new_sen.to_s.should == "(#{@fa}x[#{@te}y[f(y)]]) ^ (#{@fa}m[g(m)])"
+    end
+
+    it 'should do it like lecture 7' do 
+      sentence = make_lec7_sen
+      sentence1 = CNF_Converter.eliminate_equiv(sentence)
+      sentence2 = CNF_Converter.eliminate_impl(sentence1)
+      sentence3 = CNF_Converter.push_neg_inwards(sentence2)
+      sentence4 = CNF_Converter.standardize_apart(sentence3, [])
+      sentence4.to_s.should == "#{@fa}x[((#{@neg}(P(x))) v ((Q(x)) ^ (#{@te}y[(Q(y)) ^ (R(y, x))]))) ^ (((#{@neg}(Q(x))) v (#{@fa}m[(#{@neg}(Q(m))) v (#{@neg}(R(m, x)))])) v (P(x)))]"
+    end
+  end
 end
