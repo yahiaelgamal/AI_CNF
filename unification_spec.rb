@@ -81,27 +81,24 @@ describe "Project" do
         x = V.new 'x'
         z = V.new 'z'
         u = V.new 'u'
-        unif = U.new
         g1 = P.new 'g', [x]
         g2 = P.new 'g', [z]
         g3 = P.new 'g', [g2]
         g4 = P.new 'g', [u]
         f1 = P.new 'f', [x, g1, x]
         f2 = P.new 'f', [g4, g3, z]
-        unif.unify(f1, f2).should == false
+        U.unify(f1, f2).should == false
 
         f = P.new 'f', [x]
         g = P.new 'g', [f]
         p1 = P.new 'P', [g]
         p2 = P.new 'P', [x]
-        unif.unify(p1, p2).should == false
+        U.unify(p1, p2).should == false
       end
     end
 
     describe 'successful unification' do
       it 'should succeed and assign nested variables' do
-        unif = U.new
-
         a = C.new 'a'
         y = V.new 'y'
         z = V.new 'z'
@@ -109,11 +106,10 @@ describe "Project" do
         f = P.new 'f', [y]
         p1 = P.new 'P', [a, y, f]
         p2 = P.new 'P', [z, z, u]
-        unif.unify(p1, p2).to_s.should == '[[z, a], [y, a], [u, f(a)]]'
+        U.unify(p1, p2).to_s.should == '[[z, a], [y, a], [u, f(a)]]'
       end
 
       it 'should unify successfully' do
-        unif = U.new
         a = C.new 'a'
         u = V.new 'u'
         x = V.new 'x'
@@ -124,24 +120,23 @@ describe "Project" do
         g2 = P.new 'g', [f1]
         p1 = P.new 'P', [x, g1, g2]
         p2 = P.new 'P', [f2, v, v]
-        unif.unify(p1, p2).to_s.should == '[[x, f(a)], [v, g(f(a))], [u, a]]'
+        U.unify(p1, p2).to_s.should == '[[x, f(a)], [v, g(f(a))], [u, a]]'
       end
     end
 
     describe 'anchor' do
       it 'should work simple' do
-        unif = U.new
         a = V.new 'a'
         u = V.new 'u'
         x = V.new 'x'
         p_x = P.new('P',[x] )
 
         list = [[a, u], [x, a]]
-        new_list = unif.anchor(list)
+        new_list = U.anchor(list)
         p new_list
 
         list = [[a, p_x], [u, a]]
-        new_list = unif.anchor(list)
+        new_list = U.anchor(list)
         p new_list
 
       end

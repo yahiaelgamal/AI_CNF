@@ -672,19 +672,14 @@ module CNF_Converter
   end
 end
 
-class Unifier
+module Unifier
 
-  def unify e1, e2
+  def self.unify e1, e2
     t = unify1 e1, e2, []
-    puts "RESULT"
     anchor t
   end
 
-  def listify e
-
-  end
-
-  def anchor t
+  def self.anchor t
     return false if t == false
 
     def self.anchor_recurse(term, sub, sub_with)
@@ -724,7 +719,7 @@ class Unifier
     return new_t
   end
 
-  def unify1 e1, e2, u
+  def self.unify1 e1, e2, u
     puts '-'*40
     p e1
     p e2
@@ -780,7 +775,7 @@ class Unifier
     return ( unify1( ee1, ee2, unify1( t1, t2, u)))
   end
 
-  def unify_var x, e, u
+  def self.unify_var x, e, u
     s = find_subst u, x
     if s && s != x
       return unify1 s, e, u
@@ -800,7 +795,7 @@ class Unifier
   end
 
   #checks if a variable x occurs deeply in term t
-  def occurs_deeply x, t
+  def self.occurs_deeply x, t
     if t.is_a? Variable
       t == x ? true : false
     elsif t.is_a? Constant
@@ -813,7 +808,7 @@ class Unifier
   end
 
   # finds a substitution for x in u
-  def find_subst u, x
+  def self.find_subst u, x
     u.each do |sub|
       if sub[0] == x
         return sub[1]
@@ -823,7 +818,7 @@ class Unifier
   end
 
   # applies substitutions of u on e
-  def subst u, e
+  def self.subst u, e
     u.each do |sub|
       if e.terms
         indx = e.terms.index(sub[0])
