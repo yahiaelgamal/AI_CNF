@@ -668,11 +668,28 @@ class Unifier
 
     t = subst(u, e)     #TODO
 
-    if t.terms && t.terms.index(x)
+    # if t.terms && t.terms.index(x)
+    #   return false
+    # end
+
+    if occurs_deeply(x, t)
       return false
     end
 
     return u << [x, t]
+  end
+
+  #checks if a variable x occurs deeply in term t
+  def occurs_deeply x, t
+    if t.is_a? Variable
+      t == x ? true : false
+    elsif t.is_a? Constant
+      return false
+    elsif t.is_a? Predicate
+      return occurs_deeply(x, t.terms)
+    elsif t.is_a? Array
+      return (occurs_deeply x, t.first) || (occurs_deeply x, t[1, t.length])
+    end
   end
 
   # finds a substitution for x in u
