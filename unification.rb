@@ -202,6 +202,38 @@ end
 
 
 module CNF_Converter
+  @@trace = false
+  def self.clause_form(sentence, trace=false)
+    @@trace = trace
+    puts "Sentece is #{sentence}"
+    sentence1 = CNF_Converter.eliminate_equiv(sentence)
+    puts "----------- Step 1 Eliminate <=> -------------"
+    puts sentence1
+    sentence2 = CNF_Converter.eliminate_impl(sentence1)
+    puts "----------- Step 2 Eliminate => -------------"
+    puts sentence2
+    sentence3 = CNF_Converter.push_neg_inwards(sentence2)
+    puts "----------- Step 3 push \u00AC inwards  -------------"
+    puts sentence3
+    sentence4 = CNF_Converter.standardize_apart(sentence3, [])
+    puts "----------- Step 4 standardize apart   -------------"
+    puts sentence4
+    sentence5 = CNF_Converter.skolemize(sentence4, [], [])
+    puts "----------- Step 5 skolemize   -------------"
+    puts sentence5
+    sentence6 = CNF_Converter.discard_for_all(sentence5)
+    puts "----------- Step 6 discard  \u2200   -------------"
+    puts sentence6
+    sentence7 = CNF_Converter.translate_to_CNF(sentence6)
+    puts "----------- Step 7 Translate into CNF   -------------"
+    puts sentence7
+    clauses = CNF_Converter.build_clauses(sentence7)
+    puts "----------- Step 8-11 get clauses    -------------"
+    CNF_Converter.standardize_clauses!(clauses)
+    print_clauses(clauses)
+    return clauses
+  end
+
   def self.eliminate_equiv(old_sentence)
     # incredibliy inefficient. but who cares, this is ruby after all
     sentence = Marshal.load( Marshal.dump(old_sentence) )
@@ -547,6 +579,9 @@ module CNF_Converter
 
   # bang bang, (dangerous method, changes the array in place)
   def self.standardize_clauses!(conjs)
+    # sub and sub_with represents the substitutions happened in the sentence
+    # so far. Sub is a list of old variables, sub_with is a list of the 
+    # corresponding substituted with variables
     def self.standarize_sentence(old_sentence, used_vars, sub, sub_with)
       sentence = Marshal.load( Marshal.dump(old_sentence) )
       new_terms = sentence.vars[:predicate].terms.map do |term|
@@ -608,6 +643,11 @@ module CNF_Converter
   end
 
   def self.print_clauses(conjs)
+    puts '%%%%%%%%%%%%%'
+    conjs.each do |disj|
+      puts "#{disj}, "
+    end
+    puts '%%%%%%%%%%%%%'
   end
 
   def self.make_a_new_name(used_variables)

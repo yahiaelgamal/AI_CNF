@@ -566,4 +566,9 @@ describe CNF_Converter do
     CNF_Converter.standardize_clauses!(clauses)
     clauses.inspect.should == "[[P(sk())], [#{@neg}(Q(z)), #{@neg}(P(z))]]"
   end
+
+  it 'top level method' do
+    CNF_Converter.clause_form(make_second_example)
+    CNF_Converter.clause_form(make_lec7_sen)
+  end
 end
