@@ -483,18 +483,6 @@ module CNF_Converter
         vars[:op] = '^'
         vars[:sentence1] = left
         vars[:sentence2] = right
-      elsif vars[:op] == '^' && vars[:sentence2].vars[:op] == 'v' && vars[:sentence1].vars[:op] != 'v'
-        phi = vars[:sentence1]
-        shi = vars[:sentence2].vars[:sentence1]
-        eita = vars[:sentence2].vars[:sentence2]
-
-        left = S.new('op', {op: '^', sentence1: phi, sentence2: shi})
-        right = S.new('op', {op: '^', sentence1: phi, sentence2: eita})
-
-        # TODO double check if this is desired
-        vars[:op] = 'v'
-        vars[:sentence1] = left
-        vars[:sentence2] = right
       elsif vars[:op] == 'v' && vars[:sentence1].vars[:op] == '^' && vars[:sentence2].vars[:op] != '^'
 
         phi = vars[:sentence2]
@@ -507,19 +495,21 @@ module CNF_Converter
         vars[:op] = '^'
         vars[:sentence2] = left
         vars[:sentence1] = right
-      elsif vars[:op] == '^' && vars[:sentence1].vars[:op] == 'v' && vars[:sentence2].vars[:op] != 'v'
-        phi = vars[:sentence2]
+      elsif vars[:op] == 'v' && vars[:sentence1].vars[:op] == '^' && vars[:sentence2].vars[:op] == '^'
+
+        phi = vars[:sentence1].vars[:sentence1]
         shi = vars[:sentence1].vars[:sentence2]
-        eita = vars[:sentence1].vars[:sentence1]
+        phi_2 = vars[:sentence2].vars[:sentence1]
+        eita = vars[:sentence2].vars[:sentence2]
 
-        left = S.new('op', {op: '^', sentence2: phi, sentence1: shi})
-        right = S.new('op', {op: '^', sentence2: phi, sentence1: eita})
+        if phi.to_s == phi_2.to_s
+          left = S.new('op', {op: 'v', sentence2: phi, sentence1: shi})
+          right = S.new('op', {op: 'v', sentence2: phi, sentence1: eita})
 
-        # TODO double check if this is desired
-        vars[:op] = 'v'
-        vars[:sentence2] = left
-        vars[:sentence1] = right
-      else
+          vars[:op] = '^'
+          vars[:sentence2] = left
+          vars[:sentence1] = right
+        end
       end
 
       vars[:sentence1] = translate_to_CNF(vars[:sentence1])

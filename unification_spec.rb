@@ -41,6 +41,27 @@ def make_lec7_sen
     return sentence
 end
 
+def make_second_example
+  x = V.new('x')
+  p_x = P.new('P', [x]).to_sentence
+  neg_p_x = S.new('neg', {sentence: p_x} )
+  q_x = P.new('Q', [x]).to_sentence
+
+
+  # Q(x) ⇒ ¬P(x)
+  sen3 = S.new('op', {op: '=>', sentence1: q_x, sentence2: neg_p_x})
+
+  # ∀x[Q(x) ⇒ ¬P(x)]
+  sen2 = S.new('quant' , {quant: Q.new('A'), variable: x, sentence: sen3})
+
+  # P(x) ∧ ∀x[Q(x) ⇒ ¬P(x)]
+  sen1 = S.new('op', {op: '^', sentence1: p_x, sentence2: sen2})
+
+  # ∃x[P(x) ∧ ∀x[Q(x) ⇒ ¬P(x)]]
+  sentence = S.new('quant', {quant: Q.new('E'), variable: x, sentence: sen1})
+  return sentence
+end
+
 describe CNF_Converter do
   before(:all) do
     S = Sentence
@@ -530,5 +551,19 @@ describe CNF_Converter do
       CNF_Converter.standardize_clauses!(clauses)
       clauses.inspect.should == "[[#{@neg}(P(x)), Q(x)], [#{@neg}(P(z)), Q(sk(z))], [#{@neg}(P(y)), R(sk(y), y)], [#{@neg}(Q(w)), #{@neg}(Q(v)), #{@neg}(R(v, w)), P(w)]]"
     end
+  end
+
+  it 'should do the second exampel' do
+    sentence = make_second_example
+    sentence1 = CNF_Converter.eliminate_equiv(sentence)
+    sentence2 = CNF_Converter.eliminate_impl(sentence1)
+    sentence3 = CNF_Converter.push_neg_inwards(sentence2)
+    sentence4 = CNF_Converter.standardize_apart(sentence3, [])
+    sentence5 = CNF_Converter.skolemize(sentence4, [], [])
+    sentence6 = CNF_Converter.discard_for_all(sentence5)
+    sentence7 = CNF_Converter.translate_to_CNF(sentence6)
+    clauses = CNF_Converter.build_clauses(sentence7)
+    CNF_Converter.standardize_clauses!(clauses)
+    clauses.inspect.should == "[[P(sk())], [#{@neg}(Q(z)), #{@neg}(P(z))]]"
   end
 end
