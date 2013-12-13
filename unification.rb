@@ -672,17 +672,23 @@ module CNF_Converter
   end
 end
 
-module Unifier
+class Unifier
 
-  def self.unify e1, e2
+  attr_accessor :trace
+
+  def initialize trace=false
+    @trace = trace
+  end
+
+  def unify e1, e2
     t = unify1 e1, e2, []
     anchor t
   end
 
-  def self.anchor t
+  def anchor t
     return false if t == false
 
-    def self.anchor_recurse(term, sub, sub_with)
+    def anchor_recurse(term, sub, sub_with)
       case term.class.name
       when 'Variable'
         if sub.include?(term)
@@ -719,73 +725,65 @@ module Unifier
     return new_t
   end
 
-  def self.unify1 e1, e2, u
-    puts '-'*40
-    p e1
-    p e2
-    p u
+  #implements the main logic of unification
+  def unify1 e1, e2, u
+
+    if @trace
+      puts '*'*40
+      p "Unifying #{e1} and #{e2}"
+      p "Substitutions so far: #{u}"
+    end
 
     if u == false
       return false
     end
-    puts 1
+
     if e1 == e2
       return u
     end
-    puts 2
+
     if e1.is_a?(Variable)
       return unify_var e1, e2, u
     end
-    puts 3
+
     if e2.is_a?(Variable)
       return unify_var e2, e1, u
     end
-    puts 4
+
     if e1.is_a?(Constant) || e2.is_a?(Constant)
       return false
     end
-    puts 5
+
     if e1.length != e2.length
       return false
     end
-    # puts 6
-    # puts e1.is_a? Predicate
-    # puts e1
-    # puts e2.class.name
+
     if e1.is_a? Array
-      #puts "ARRRAYY111"
       ee1 = e1[1, e1.length]
       t1 = e1.first
     elsif e1.is_a? Predicate
-      #puts "preddd11"
       ee1 = e1.terms
       t1 = e1.name
     end
     if e2.is_a? Array
-      #puts "ARRRAYY222"
       ee2 = e2[1, e2.length]
       t2 = e2.first
     elsif e2.is_a? Predicate
-      #puts "Preddd22"
       ee2 = e2.terms
       t2 = e2.name
     end
-    puts '-'*40
-    
+
     return (unify1( ee1, ee2, unify1( t1, t2, u)))
   end
 
-  def self.unify_var x, e, u
+  #unify variable x, with term e and tries using u for substitution
+  def unify_var x, e, u
     s = find_subst u, x
     if s && s != x
       return unify1 s, e, u
     end
 
-    t = subst(u, e)     #TODO
-
-    # if t.terms && t.terms.index(x)
-    #   return false
-    # end
+    t = subst(u, e)
 
     if occurs_deeply(x, t)
       return false
@@ -795,7 +793,7 @@ module Unifier
   end
 
   #checks if a variable x occurs deeply in term t
-  def self.occurs_deeply x, t
+  def occurs_deeply x, t
     if t.is_a? Variable
       t == x ? true : false
     elsif t.is_a? Constant
@@ -808,7 +806,7 @@ module Unifier
   end
 
   # finds a substitution for x in u
-  def self.find_subst u, x
+  def find_subst u, x
     u.each do |sub|
       if sub[0] == x
         return sub[1]
@@ -818,7 +816,7 @@ module Unifier
   end
 
   # applies substitutions of u on e
-  def self.subst u, e
+  def subst u, e
     u.each do |sub|
       if e.terms
         indx = e.terms.index(sub[0])
@@ -846,7 +844,7 @@ def test_unification
   g2 = Predicate.new 'g', [f1]
   p1 = Predicate.new 'P', [x, g1, g2]
   p2 = Predicate.new 'P', [f2, v, v]
-  unifier = Unifier.new
+  unifier = Unifier.new true
   p p1
   p p2
   p unifier.unify p1, p2
@@ -862,26 +860,26 @@ def test_unification
   f = Predicate.new 'f', [y]
   p1 = Predicate.new 'P', [a, y, f]
   p2 = Predicate.new 'P', [z, z, u]
-  unifier = Unifier.new
+  unifier = Unifier.new true
   p p1
   p p2
   p unifier.unify p1, p2
 
   #example 3
-  #puts "="*50
-  #puts "Example 3"
-  #x = Variable.new 'x'
-  #z = Variable.new 'z'
-  #u = Variable.new 'u'
-  #g1 = Predicate.new 'g', [x]
-  #g2 = Predicate.new 'g', [z]
-  #g3 = Predicate.new 'g', [g2]
-  #g4 = Predicate.new 'g', [u]
-  #f1 = Predicate.new 'f', [x, g1, x]
-  #f2 = Predicate.new 'f', [g4, g3, z]
-  #unifier = Unifier.new
-  #p p1
-  #p p2
-  #p unifier.unify f1, f2
+  puts "="*50
+  puts "Example 3"
+  x = Variable.new 'x'
+  z = Variable.new 'z'
+  u = Variable.new 'u'
+  g1 = Predicate.new 'g', [x]
+  g2 = Predicate.new 'g', [z]
+  g3 = Predicate.new 'g', [g2]
+  g4 = Predicate.new 'g', [u]
+  f1 = Predicate.new 'f', [x, g1, x]
+  f2 = Predicate.new 'f', [g4, g3, z]
+  unifier = Unifier.new true
+  p p1
+  p p2
+  p unifier.unify f1, f2
 end
 #test_unification()
