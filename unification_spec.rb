@@ -122,7 +122,26 @@ describe Unifier do
       g2 = P.new 'g', [f1]
       p1 = P.new 'P', [x, g1, g2]
       p2 = P.new 'P', [f2, v, v]
-      unif.unify(p1, p2).to_s.should == '[[x, f(a)], [v, g(f(u))], [u, a]]'
+      unif.unify(p1, p2).to_s.should == '[[x, f(a)], [v, g(f(a))], [u, a]]'
+    end
+  end
+
+  describe 'anchor' do
+    it 'should work simple' do
+      unif = U.new
+      a = V.new 'a'
+      u = V.new 'u'
+      x = V.new 'x'
+      p_x = P.new('P',[x] )
+
+      list = [[a, u], [x, a]]
+      new_list = unif.anchor(list)
+      p new_list
+
+      list = [[a, p_x], [u, a]]
+      new_list = unif.anchor(list)
+      p new_list
+
     end
   end
 end
