@@ -446,7 +446,7 @@ describe CNF_Converter do
     end
   end
 
-  describe 'flatten' do
+  describe 'build clauses ' do
     it 'should do it simple' do
       x = V.new('x')
       y = V.new('y')
@@ -460,7 +460,6 @@ describe CNF_Converter do
         sentence2: sen } )
       # ((f(x)) v (f(y))) ^ ((f(x)) v (g(y)))
       sentence = CNF_Converter.translate_to_CNF(sentence)
-      #new_sen = CNF_Converter.flatten(sentence)
       conjs = CNF_Converter.get_sentences_rec(sentence, [], '^')
       conjs.inspect.should == "[(f(x)) v (f(y)), (f(x)) v (g(y))]"
     end
@@ -484,7 +483,7 @@ describe CNF_Converter do
       # f(x) ^ (f(y) v (g(x) v g(y)))
       sentence = S.new('op', {op: '^', sentence1: f_x, sentence2: sen})
       #p sentence
-      CNF_Converter.flatten(sentence).inspect.should == "[[f(x)], [f(y), g(x), #{@neg}(g(y))]]"
+      CNF_Converter.build_clauses(sentence).inspect.should == "[[f(x)], [f(y), g(x), #{@neg}(g(y))]]"
     end
 
     it 'should do the lecture' do

@@ -1,16 +1,3 @@
-require 'deep_clone'
-
-#class Operator
-  ## sym belongs to [^ v => <=>]
-  #def initialize(sym)
-    #self.sym = sym
-  #end
-
-  #def to_s
-    #return self.sym
-  #end
-#end
-
 class Quantifier
   # kind is either an A or an E
   attr_accessor :kind
@@ -67,7 +54,6 @@ class Sentence < Expression
   #     sentence (in case of neg)
   #     sentence1, sentence2, op (in case of "op")
   #     quant, variable, sentence (in case of quan)
-  #     sentences, ops (in case of "flattened")
   def initialize(type, vars={})
     @type = type
     @vars= vars
@@ -107,14 +93,6 @@ class Sentence < Expression
       unless vars[:quant].is_a? Quantifier
         throw "vars[:quant] is not of class Quantifier, it is a #{vars[:variable].class.name}"
       end
-    when 'flattened'
-      unless vars[:sentences].is_a?(Array)
-        throw "vars[:sentences] is not of class List, it is a #{vars[:sentences].class.name}"
-      end
-
-      unless vars[:ops].is_a?(Array)
-        throw "vars[:ops] is not of class Array, it is a #{vars[:ops].class.name}"
-      end
     end
 
   end
@@ -131,15 +109,6 @@ class Sentence < Expression
       return "(#{@vars[:sentence1].to_s}) #{@vars[:op].to_s} (#{@vars[:sentence2].to_s})"
     when "quant"
       return "#{@vars[:quant].to_s}#{@vars[:variable].to_s}[#{@vars[:sentence].to_s}]"
-    when "flattened"
-      s = '' 
-      sentences = @vars[:sentences]
-      ops = @vars[:ops]
-      (0..sentences.count-2).each do |i|
-        s += "#{sentences[i]} #{ops[i]} "
-      end
-      s+= "#{sentences[sentences.count-1]}"
-      return s
     end
   end
 end
@@ -359,15 +328,11 @@ module CNF_Converter
     when 'equiv'
       return sentence
     when 'neg'
-      #puts 'IT IS A NEG['
-      #puts sentence
       if vars[:sentence].type != 'atomic' && vars[:sentence].type != 'equiv'
         sentence = propagate_neg(vars[:sentence])
-        #puts "sentence now is #{sentence}"
         vars = sentence.vars
         sentence = push_neg_inwards(sentence)
       end
-      #puts ']'
       return sentence
     when 'op'
       vars[:sentence1] = push_neg_inwards(vars[:sentence1])
@@ -570,8 +535,6 @@ module CNF_Converter
     sentence = Marshal.load( Marshal.dump(old_sentence) )
     vars = sentence.vars
 
-    new_sentence = Sentence.new('flattened', {sentences: [], ops: []})
-    new_vars = new_sentence.vars
     case sentence.type
     when 'atomic'
       return sentence
@@ -623,10 +586,6 @@ module CNF_Converter
     return name
   end
 end
-
-
-
-
 
 class Unifier
   def unify e1, e2
