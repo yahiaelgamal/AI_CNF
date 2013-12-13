@@ -386,7 +386,7 @@ describe CNF_Converter do
       to_be_tested.to_s.should == "f(sk(x1, x2))"
     end
 
-    it 'should do like lecture 7 ' do
+    it 'should do like lecture 7' do
       sentence = make_lec7_sen
       sentence1 = CNF_Converter.eliminate_equiv(sentence)
       sentence2 = CNF_Converter.eliminate_impl(sentence1)
@@ -396,6 +396,53 @@ describe CNF_Converter do
       sentence6 = CNF_Converter.discard_for_all(sentence5)
       sentence6.to_s.should == "((#{@neg}(P(x))) v ((Q(x)) ^ ((Q(sk(x))) ^ (R(sk(x), x))))) ^ (((#{@neg}(Q(x))) v ((#{@neg}(Q(m))) v (#{@neg}(R(m, x))))) v (P(x)))"
     end
+  end
 
+  describe 'translate to CNF' do
+    it 'should do it simple' do
+      x = V.new('x')
+      y = V.new('y')
+      f_x = P.new('f', [x]).to_sentence
+      f_y = P.new('f', [y]).to_sentence
+      g_y = P.new('g', [y]).to_sentence
+      sen = S.new('op', {op: '^', sentence1: f_y, sentence2: g_y})
+      sentence = S.new('op', {
+        op: 'v',
+        sentence1: f_x,
+        sentence2: sen } )
+      new_sen = CNF_Converter.translate_to_CNF(sentence)
+      new_sen.to_s.should == "((f(x)) v (f(y))) ^ ((f(x)) v (g(y)))"
+    end
+
+    it 'should do it inverse' do
+      x = V.new('x')
+      y = V.new('y')
+      f_x = P.new('f', [x]).to_sentence
+      f_y = P.new('f', [y]).to_sentence
+      g_y = P.new('g', [y]).to_sentence
+      sen = S.new('op', {op: '^', sentence1: f_y, sentence2: g_y})
+
+      # (f(y) ^ g(y)) v (f(x))
+      sentence = S.new('op', {
+        op: 'v',
+        sentence1: sen,
+        sentence2: f_x } )
+
+      new_sen = CNF_Converter.translate_to_CNF(sentence)
+      new_sen.to_s.should == "((f(y)) v (f(x))) ^ ((g(y)) v (f(x)))"
+
+    end
+
+    it 'should do lecture 7' do 
+      sentence = make_lec7_sen
+      sentence1 = CNF_Converter.eliminate_equiv(sentence)
+      sentence2 = CNF_Converter.eliminate_impl(sentence1)
+      sentence3 = CNF_Converter.push_neg_inwards(sentence2)
+      sentence4 = CNF_Converter.standardize_apart(sentence3, [])
+      sentence5 = CNF_Converter.skolemize(sentence4, [], [])
+      sentence6 = CNF_Converter.discard_for_all(sentence5)
+      sentence7 = CNF_Converter.translate_to_CNF(sentence6)
+      sentence7.to_s.should == "(((#{@neg}(P(x))) v (Q(x))) ^ (((#{@neg}(P(x))) v (Q(sk(x)))) ^ ((#{@neg}(P(x))) v (R(sk(x), x))))) ^ (((#{@neg}(Q(x))) v ((#{@neg}(Q(m))) v (#{@neg}(R(m, x))))) v (P(x)))"
+    end
   end
 end

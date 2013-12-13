@@ -67,7 +67,7 @@ class Sentence < Expression
   #     sentence (in case of neg)
   #     sentence1, sentence2, op (in case of "op")
   #     quant, variable, sentence (in case of quan)
-  #
+  #     sentences, ops (in case of "flattened")
   def initialize(type, vars={})
     @type = type
     @vars= vars
@@ -107,7 +107,16 @@ class Sentence < Expression
       unless vars[:quant].is_a? Quantifier
         throw "vars[:quant] is not of class Quantifier, it is a #{vars[:variable].class.name}"
       end
+    when 'flattened'
+      unless vars[:sentences].is_a?(List)
+        throw "vars[:sentences] is not of class List, it is a #{vars[:sentences].class.name}"
+      end
+
+      unless vars[:ops].is_a?(List)
+        throw "vars[:ops] is not of class List, it is a #{vars[:ops].class.name}"
+      end
     end
+
   end
 
   def to_s
@@ -122,6 +131,15 @@ class Sentence < Expression
       return "(#{@vars[:sentence1].to_s}) #{@vars[:op].to_s} (#{@vars[:sentence2].to_s})"
     when "quant"
       return "#{@vars[:quant].to_s}#{@vars[:variable].to_s}[#{@vars[:sentence].to_s}]"
+    when "flattened"
+      s = '' 
+      sentences = @vars[:sentences]
+      ops = @vars[:ops]
+      (0..sentences.count-2).each do |i|
+        s += "#{sentences[i]} #{ops[i]} "
+      end
+      s+= "#{sentences[sentences.count-1]}"
+      return s
     end
   end
 end
@@ -429,8 +447,8 @@ module CNF_Converter
     vars = sentence.vars
     case sentence.type
     when 'atomic'
-      predicate = vars[:predicate]
-      predicate.terms = predicate.terms.map do |term|
+       predicate = vars[:predicate]
+       predicate.terms.map! do |term|
         if term == old_term
           new_term
         else
@@ -476,6 +494,96 @@ module CNF_Converter
     end
   end
 
+  def self.translate_to_CNF(old_sentence)
+    sentence = Marshal.load( Marshal.dump(old_sentence) )
+    vars = sentence.vars
+    case sentence.type
+    when 'atomic'
+      return sentence
+    when 'equiv'
+      return sentence
+    when 'neg'
+      return sentence
+    when 'op'
+
+      if vars[:op] == 'v' && vars[:sentence2].vars[:op] == '^' && vars[:sentence1].vars[:op] != '^'
+
+        phi = vars[:sentence1]
+        shi = vars[:sentence2].vars[:sentence1]
+        eita = vars[:sentence2].vars[:sentence2]
+
+        left = S.new('op', {op: 'v', sentence1: phi, sentence2: shi})
+        right = S.new('op', {op: 'v', sentence1: phi, sentence2: eita})
+
+        vars[:op] = '^'
+        vars[:sentence1] = left
+        vars[:sentence2] = right
+      elsif vars[:op] == '^' && vars[:sentence2].vars[:op] == 'v' && vars[:sentence1].vars[:op] != 'v'
+        phi = vars[:sentence1]
+        shi = vars[:sentence2].vars[:sentence1]
+        eita = vars[:sentence2].vars[:sentence2]
+
+        left = S.new('op', {op: '^', sentence1: phi, sentence2: shi})
+        right = S.new('op', {op: '^', sentence1: phi, sentence2: eita})
+
+        # TODO double check if this is desired
+        vars[:op] = 'v'
+        vars[:sentence1] = left
+        vars[:sentence2] = right
+      elsif vars[:op] == 'v' && vars[:sentence1].vars[:op] == '^' && vars[:sentence2].vars[:op] != '^'
+
+        phi = vars[:sentence2]
+        shi = vars[:sentence1].vars[:sentence2]
+        eita = vars[:sentence1].vars[:sentence1]
+
+        left = S.new('op', {op: 'v', sentence2: phi, sentence1: shi})
+        right = S.new('op', {op: 'v', sentence2: phi, sentence1: eita})
+
+        vars[:op] = '^'
+        vars[:sentence2] = left
+        vars[:sentence1] = right
+      elsif vars[:op] == '^' && vars[:sentence1].vars[:op] == 'v' && vars[:sentence2].vars[:op] != 'v'
+        phi = vars[:sentence2]
+        shi = vars[:sentence1].vars[:sentence2]
+        eita = vars[:sentence1].vars[:sentence1]
+
+        left = S.new('op', {op: '^', sentence2: phi, sentence1: shi})
+        right = S.new('op', {op: '^', sentence2: phi, sentence1: eita})
+
+        # TODO double check if this is desired
+        vars[:op] = 'v'
+        vars[:sentence2] = left
+        vars[:sentence1] = right
+      else
+      end
+
+      vars[:sentence1] = translate_to_CNF(vars[:sentence1])
+      vars[:sentence2] = translate_to_CNF(vars[:sentence2])
+      return sentence
+    else
+      throw "there shouldn't be this type #{sentence.type}"
+    end
+  end
+
+  def self.flatten(old_sentence)
+    sentence = Marshal.load( Marshal.dump(old_sentence) )
+    vars = sentence.vars
+    new_sentence = Sentence.new('flattened', {})
+    new_vars = new_sentence.vars
+    case sentence.type
+    when 'atomic'
+      return sentence
+    when 'equiv'
+      return sentence
+    when 'neg'
+      return sentence
+    when 'op'
+      if()
+    else
+      throw "YOu must trnslate to CNF first"
+    end
+  end
+
   def self.make_a_new_name(used_variables)
     names = used_variables.map{|var| var.name}
     name = %w[m n o p q r s t u v w x y z].find {|name| !names.include?(name)}
@@ -486,7 +594,6 @@ module CNF_Converter
     name = %w[sk sk1 sk2 sk3 sk4 sk5 sk6 sk7 sk8 sk9 sk10].find {|name| !used_names.include?(name)}
     return name
   end
-
 end
 
 
