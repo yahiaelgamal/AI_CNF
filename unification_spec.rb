@@ -445,4 +445,59 @@ describe CNF_Converter do
       sentence7.to_s.should == "(((#{@neg}(P(x))) v (Q(x))) ^ (((#{@neg}(P(x))) v (Q(sk(x)))) ^ ((#{@neg}(P(x))) v (R(sk(x), x))))) ^ (((#{@neg}(Q(x))) v ((#{@neg}(Q(m))) v (#{@neg}(R(m, x))))) v (P(x)))"
     end
   end
+
+  describe 'flatten' do
+    it 'should do it simple' do
+      x = V.new('x')
+      y = V.new('y')
+      f_x = P.new('f', [x]).to_sentence
+      f_y = P.new('f', [y]).to_sentence
+      g_y = P.new('g', [y]).to_sentence
+      sen = S.new('op', {op: '^', sentence1: f_y, sentence2: g_y})
+      sentence = S.new('op', {
+        op: 'v',
+        sentence1: f_x,
+        sentence2: sen } )
+      # ((f(x)) v (f(y))) ^ ((f(x)) v (g(y)))
+      sentence = CNF_Converter.translate_to_CNF(sentence)
+      #new_sen = CNF_Converter.flatten(sentence)
+      conjs = CNF_Converter.get_sentences_rec(sentence, [], '^')
+      conjs.inspect.should == "[(f(x)) v (f(y)), (f(x)) v (g(y))]"
+    end
+
+    it 'should do it medium' do
+      x = V.new('x')
+      y = V.new('y')
+      f_x = P.new('f', [x]).to_sentence
+      g_x = P.new('g', [x]).to_sentence
+      f_y = P.new('f', [y]).to_sentence
+      g_y = P.new('g', [y]).to_sentence
+      neg_g_y = S.new('neg', {sentence: g_y})
+
+
+      # (g(x) v g(y))
+      sen2 = S.new('op', {op: 'v', sentence1: g_x, sentence2: neg_g_y})
+
+      # (f(y) v (g(x) v g(y)))
+      sen = S.new('op', {op: 'v', sentence1: f_y, sentence2: sen2})
+
+      # f(x) ^ (f(y) v (g(x) v g(y)))
+      sentence = S.new('op', {op: '^', sentence1: f_x, sentence2: sen})
+      #p sentence
+      CNF_Converter.flatten(sentence).inspect.should == "[[f(x)], [f(y), g(x), #{@neg}(g(y))]]"
+    end
+
+    it 'should do the lecture' do
+      sentence = make_lec7_sen
+      sentence1 = CNF_Converter.eliminate_equiv(sentence)
+      sentence2 = CNF_Converter.eliminate_impl(sentence1)
+      sentence3 = CNF_Converter.push_neg_inwards(sentence2)
+      sentence4 = CNF_Converter.standardize_apart(sentence3, [])
+      sentence5 = CNF_Converter.skolemize(sentence4, [], [])
+      sentence6 = CNF_Converter.discard_for_all(sentence5)
+      sentence7 = CNF_Converter.translate_to_CNF(sentence6)
+      clauses = CNF_Converter.build_clauses(sentence7)
+      clauses.inspect.should == "[[#{@neg}(P(x)), Q(x)], [#{@neg}(P(x)), Q(sk(x))], [#{@neg}(P(x)), R(sk(x), x)], [#{@neg}(Q(x)), #{@neg}(Q(m)), #{@neg}(R(m, x)), P(x)]]"
+    end
+  end
 end

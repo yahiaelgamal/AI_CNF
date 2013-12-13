@@ -108,12 +108,12 @@ class Sentence < Expression
         throw "vars[:quant] is not of class Quantifier, it is a #{vars[:variable].class.name}"
       end
     when 'flattened'
-      unless vars[:sentences].is_a?(List)
+      unless vars[:sentences].is_a?(Array)
         throw "vars[:sentences] is not of class List, it is a #{vars[:sentences].class.name}"
       end
 
-      unless vars[:ops].is_a?(List)
-        throw "vars[:ops] is not of class List, it is a #{vars[:ops].class.name}"
+      unless vars[:ops].is_a?(Array)
+        throw "vars[:ops] is not of class Array, it is a #{vars[:ops].class.name}"
       end
     end
 
@@ -565,10 +565,12 @@ module CNF_Converter
     end
   end
 
-  def self.flatten(old_sentence)
+  # this is step kk
+  def self.build_clauses(old_sentence)
     sentence = Marshal.load( Marshal.dump(old_sentence) )
     vars = sentence.vars
-    new_sentence = Sentence.new('flattened', {})
+
+    new_sentence = Sentence.new('flattened', {sentences: [], ops: []})
     new_vars = new_sentence.vars
     case sentence.type
     when 'atomic'
@@ -578,10 +580,36 @@ module CNF_Converter
     when 'neg'
       return sentence
     when 'op'
-      if()
+      conjs = get_sentences_rec(sentence, [], '^')
+      conjs.map! do |disj|
+        disj = get_sentences_rec(disj, [], 'v')
+      end
+      conjs.uniq!
+      return conjs
     else
-      throw "YOu must trnslate to CNF first"
+      throw "You must trnslate to CNF first"
     end
+  end
+
+  def self.get_sentences_rec(sentence, sentences, op)
+    vars = sentence.vars
+    case sentence.type
+    when 'atomic'
+      return [sentence]
+    when 'neg'
+      return [sentence]
+    when 'op'
+      if (vars[:op] == op)
+        sub_sents1 = get_sentences_rec(vars[:sentence1], [], op)
+        sub_sents2 = get_sentences_rec(vars[:sentence2], [], op)
+        return sentences + sub_sents1 + sub_sents2
+      else
+        return sentences + [sentence]
+      end
+    end
+  end
+
+  def self.print_clauses(conjs)
   end
 
   def self.make_a_new_name(used_variables)
