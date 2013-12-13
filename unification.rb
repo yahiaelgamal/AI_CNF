@@ -321,45 +321,6 @@ module CNF_Converter
     end
   end
 
-  def self.propagate_neg(old_sentence)
-    sentence = Marshal.load( Marshal.dump(old_sentence) )
-    vars = sentence.vars
-
-    case sentence.type
-    when 'atomic'
-      sentence = S.new('neg', {sentence: sentence})
-      return sentence
-    when 'equiv'
-      sentence = S.new('neg', {sentence: sentence})
-      return sentence
-    when 'neg'
-      sentence = vars[:sentence]
-      return sentence
-    when 'op'
-      case vars[:op]
-      when '^'
-        vars[:op] = 'v'
-        vars[:sentence1] = S.new('neg', {sentence: vars[:sentence1]})
-        vars[:sentence2] = S.new('neg', {sentence: vars[:sentence2]})
-      when 'v'
-        vars[:op] = '^'
-        vars[:sentence1] = S.new('neg', {sentence: vars[:sentence1]})
-        vars[:sentence2] = S.new('neg', {sentence: vars[:sentence2]})
-      end
-      return sentence
-    when 'quant'
-      case vars[:quant].kind
-      when 'A'
-        vars[:quant] = Quantifier.new('E')
-        vars[:sentence] = S.new('neg', {sentence: vars[:sentence]})
-      when 'E'
-        vars[:quant] = Quantifier.new('A')
-        vars[:sentence] = S.new('neg', {sentence: vars[:sentence]})
-      end
-      return sentence
-    end
-  end
-
   def self.push_neg_inwards(old_sentence)
     sentence = Marshal.load( Marshal.dump(old_sentence) )
     vars = sentence.vars
@@ -388,7 +349,6 @@ module CNF_Converter
   end
 
   def self.standardize_apart(old_sentence, used_variables)
-
     sentence = Marshal.load( Marshal.dump(old_sentence) )
     vars = sentence.vars
     case sentence.type
@@ -448,33 +408,6 @@ module CNF_Converter
       return sentence
     end
   end
-
-  def self.replace_term!(sentence, old_term, new_term)
-    vars = sentence.vars
-    case sentence.type
-    when 'atomic'
-       predicate = vars[:predicate]
-       predicate.terms.map! do |term|
-        if term == old_term
-          new_term
-        else
-          term
-        end
-      end
-    when 'equiv'
-      replace_term!(vars[:term1], old_term, new_term)
-      replace_term!(vars[:term2], old_term, new_term)
-    when 'neg'
-      replace_term!(vars[:sentence], old_term, new_term)
-    when 'op'
-      replace_term!(vars[:sentence1], old_term, new_term)
-      replace_term!(vars[:sentence2], old_term, new_term)
-    when 'quant'
-      replace_term!(vars[:sentence], old_term, new_term)
-    else
-    end
-  end
-
   def self.discard_for_all(old_sentence)
     sentence = Marshal.load( Marshal.dump(old_sentence) )
     vars = sentence.vars
@@ -633,6 +566,7 @@ module CNF_Converter
     end
   end
 
+  # gets all sentences recursively
   def self.get_sentences_rec(sentence, sentences, op)
     vars = sentence.vars
     case sentence.type
@@ -673,6 +607,72 @@ module CNF_Converter
     name = %w[sk sk1 sk2 sk3 sk4 sk5 sk6 sk7 sk8 sk9 sk10].find {|name| !used_names.include?(name)}
     return name
   end
+
+  def self.propagate_neg(old_sentence)
+    sentence = Marshal.load( Marshal.dump(old_sentence) )
+    vars = sentence.vars
+
+    case sentence.type
+    when 'atomic'
+      sentence = S.new('neg', {sentence: sentence})
+      return sentence
+    when 'equiv'
+      sentence = S.new('neg', {sentence: sentence})
+      return sentence
+    when 'neg'
+      sentence = vars[:sentence]
+      return sentence
+    when 'op'
+      case vars[:op]
+      when '^'
+        vars[:op] = 'v'
+        vars[:sentence1] = S.new('neg', {sentence: vars[:sentence1]})
+        vars[:sentence2] = S.new('neg', {sentence: vars[:sentence2]})
+      when 'v'
+        vars[:op] = '^'
+        vars[:sentence1] = S.new('neg', {sentence: vars[:sentence1]})
+        vars[:sentence2] = S.new('neg', {sentence: vars[:sentence2]})
+      end
+      return sentence
+    when 'quant'
+      case vars[:quant].kind
+      when 'A'
+        vars[:quant] = Quantifier.new('E')
+        vars[:sentence] = S.new('neg', {sentence: vars[:sentence]})
+      when 'E'
+        vars[:quant] = Quantifier.new('A')
+        vars[:sentence] = S.new('neg', {sentence: vars[:sentence]})
+      end
+      return sentence
+    end
+  end
+
+  def self.replace_term!(sentence, old_term, new_term)
+    vars = sentence.vars
+    case sentence.type
+    when 'atomic'
+       predicate = vars[:predicate]
+       predicate.terms.map! do |term|
+        if term == old_term
+          new_term
+        else
+          term
+        end
+      end
+    when 'equiv'
+      replace_term!(vars[:term1], old_term, new_term)
+      replace_term!(vars[:term2], old_term, new_term)
+    when 'neg'
+      replace_term!(vars[:sentence], old_term, new_term)
+    when 'op'
+      replace_term!(vars[:sentence1], old_term, new_term)
+      replace_term!(vars[:sentence2], old_term, new_term)
+    when 'quant'
+      replace_term!(vars[:sentence], old_term, new_term)
+    else
+    end
+  end
+
 end
 
 module Unifier
