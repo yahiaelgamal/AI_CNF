@@ -735,7 +735,7 @@ class Unifier
     end
     puts '-'*40
 
-    return ( unify1( ee1, ee2, unify1( t1, t2, u)))
+    return (unify1( ee1, ee2, unify1( t1, t2, u)))
     zzc
   end
 
