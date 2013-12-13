@@ -560,8 +560,9 @@ module CNF_Converter
     def self.standarize_sentence(old_sentence, used_vars, sub, sub_with)
       sentence = Marshal.load( Marshal.dump(old_sentence) )
       new_terms = sentence.vars[:predicate].terms.map do |term|
-        if !term.is_a?(Variable)
-          term
+        if term.is_a?(Predicate)
+          # work around
+          standarize_sentence(term.to_sentence, used_vars, sub, sub_with).vars[:predicate]
         elsif sub.include?(term)
           sub_with[sub.index(term)]
         elsif used_vars.include?(term)
@@ -571,6 +572,8 @@ module CNF_Converter
           used_vars << new_var
           new_var
         else
+          sub << term
+          sub_with << term
           used_vars << term
           term
         end

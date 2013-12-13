@@ -516,5 +516,19 @@ describe CNF_Converter do
       CNF_Converter.standardize_clauses!(clauses)
       clauses.inspect.should == "[[f(x)], [g(z), f(z)], [f(y), h(y)], [#{@neg}(h(w)), g(w)]]"
     end
+
+    it 'should do lecture 7' do
+      sentence = make_lec7_sen
+      sentence1 = CNF_Converter.eliminate_equiv(sentence)
+      sentence2 = CNF_Converter.eliminate_impl(sentence1)
+      sentence3 = CNF_Converter.push_neg_inwards(sentence2)
+      sentence4 = CNF_Converter.standardize_apart(sentence3, [])
+      sentence5 = CNF_Converter.skolemize(sentence4, [], [])
+      sentence6 = CNF_Converter.discard_for_all(sentence5)
+      sentence7 = CNF_Converter.translate_to_CNF(sentence6)
+      clauses = CNF_Converter.build_clauses(sentence7)
+      CNF_Converter.standardize_clauses!(clauses)
+      clauses.inspect.should == "[[#{@neg}(P(x)), Q(x)], [#{@neg}(P(z)), Q(sk(z))], [#{@neg}(P(y)), R(sk(y), y)], [#{@neg}(Q(w)), #{@neg}(Q(v)), #{@neg}(R(v, w)), P(w)]]"
+    end
   end
 end
