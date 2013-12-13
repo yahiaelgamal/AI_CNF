@@ -640,9 +640,5 @@ describe "Project" do
       clauses.inspect.should == "[[P(sk())], [#{@neg}(Q(z)), #{@neg}(P(z))]]"
     end
 
-    it 'top level method' do
-      CNF_Converter.clause_form(make_second_example)
-      CNF_Converter.clause_form(make_lec7_sen)
-    end
   end
 end

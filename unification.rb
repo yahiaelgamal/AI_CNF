@@ -202,41 +202,44 @@ end
 
 
 module CNF_Converter
-  @@trace = false
-  def self.puts *vars
-    if @@trace
-      puts vars
-    end
-  end
 
   def self.clause_form(sentence, trace=false)
     @@trace = trace
-    puts "Sentece is #{sentence}"
+    puts "Sentece is #{sentence}" if trace
+
     sentence1 = CNF_Converter.eliminate_equiv(sentence)
-    puts "----------- Step 1 Eliminate <=> -------------"
-    puts sentence1
+    puts "----------- Step 1 Eliminate <=> -------------" if trace
+    puts sentence1 if trace
+
     sentence2 = CNF_Converter.eliminate_impl(sentence1)
-    puts "----------- Step 2 Eliminate => -------------"
-    puts sentence2
+    puts "----------- Step 2 Eliminate => -------------" if trace
+    puts sentence2 if trace
+
     sentence3 = CNF_Converter.push_neg_inwards(sentence2)
-    puts "----------- Step 3 push \u00AC inwards  -------------"
-    puts sentence3
+    puts "----------- Step 3 push \u00AC inwards  -------------" if trace
+    puts sentence3 if trace
+
     sentence4 = CNF_Converter.standardize_apart(sentence3, [])
-    puts "----------- Step 4 standardize apart   -------------"
-    puts sentence4
+    puts "----------- Step 4 standardize apart   -------------" if trace
+    puts sentence4 if trace
+
     sentence5 = CNF_Converter.skolemize(sentence4, [], [])
-    puts "----------- Step 5 skolemize   -------------"
-    puts sentence5
+    puts "----------- Step 5 skolemize   -------------" if trace
+    puts sentence5 if trace
+
     sentence6 = CNF_Converter.discard_for_all(sentence5)
-    puts "----------- Step 6 discard  \u2200   -------------"
-    puts sentence6
+    puts "----------- Step 6 discard  \u2200   -------------" if trace
+    puts sentence6 if trace
+
     sentence7 = CNF_Converter.translate_to_CNF(sentence6)
-    puts "----------- Step 7 Translate into CNF   -------------"
-    puts sentence7
+    puts "----------- Step 7 Translate into CNF   -------------" if trace
+    puts sentence7 if trace
+
     clauses = CNF_Converter.build_clauses(sentence7)
-    puts "----------- Step 8-11 get clauses    -------------"
-    CNF_Converter.standardize_clauses!(clauses)
-    print_clauses(clauses)
+    puts "----------- Step 8-11 get clauses    -------------" if trace
+    CNF_Converter.standardize_clauses!(clauses) if trace
+    print_clauses(clauses) if trace
+
     return clauses
   end
 
@@ -679,8 +682,9 @@ module Unifier
     anchor t
   end
 
-  def self.anchor t
-    return false if t == false
+  # t is a list of pairs [[ai, bi], ..] such that bi substitues ai
+  def self.anchor(pairs)
+    return false if pairs == false
 
     def self.anchor_recurse(term, sub, sub_with)
       case term.class.name
@@ -702,12 +706,12 @@ module Unifier
     end
 
     changed = true
-    sub = t.map {|pair| pair[0]}
-    sub_with = t.map {|pair| pair[1]}
-    new_t = t
+    sub = pairs.map {|pair| pair[0]}
+    sub_with = pairs.map {|pair| pair[1]}
+    new_pairs = pairs
     while changed
       changed = false
-      new_t = new_t.map do |pair|
+      new_pairs = new_pairs.map do |pair|
         res = anchor_recurse(pair[1], sub, sub_with)
         if res != pair[1]
           changed = true
@@ -716,7 +720,7 @@ module Unifier
         pair
       end
     end
-    return new_t
+    return new_pairs
   end
 
   def self.unify1 e1, e2, u
