@@ -555,7 +555,45 @@ module CNF_Converter
     end
   end
 
-  def self.standardize_clauses(clauses)
+  # bang bang, (dangerous method, changes the array in place)
+  def self.standardize_clauses!(conjs)
+    def self.standarize_sentence(old_sentence, used_vars, sub, sub_with)
+      sentence = Marshal.load( Marshal.dump(old_sentence) )
+      new_terms = sentence.vars[:predicate].terms.map do |term|
+        if !term.is_a?(Variable)
+          term
+        elsif sub.include?(term)
+          sub_with[sub.index(term)]
+        elsif used_vars.include?(term)
+          sub << term
+          new_var = Variable.new(make_a_new_name(used_vars))
+          sub_with << new_var
+          used_vars << new_var
+          new_var
+        else
+          used_vars << term
+          term
+        end
+      end
+      new_pred = Predicate.new(sentence.vars[:predicate].name, new_terms)
+      sentence.vars[:predicate] = new_pred
+      return sentence
+    end
+
+    used_variables = []
+    conjs.each do |disjs|
+      sub = []
+      sub_with = []
+      disjs.map! do |sentence|
+        case sentence.type
+        when 'atomic'
+          standarize_sentence(sentence, used_variables, sub, sub_with)
+        when 'neg'
+          sentence.vars[:sentence] = standarize_sentence(sentence.vars[:sentence], used_variables, sub, sub_with)
+          sentence
+        end
+      end
+    end
   end
 
   def self.get_sentences_rec(sentence, sentences, op)

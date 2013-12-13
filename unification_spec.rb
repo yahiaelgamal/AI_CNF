@@ -22,7 +22,7 @@ def make_lec7_sen
                  sentence2: sen3
     })
 
-    # sen1 = P(x) <=> (Q(x) ∧ ∃y[Q(y) ∧ R(y, x)])
+   # sen1 = P(x) <=> (Q(x) ∧ ∃y[Q(y) ∧ R(y, x)])
     sen1 = S.new('op', {
       op: '<=>',
       sentence1: S.new('atomic', {predicate: P.new('P', [x])}),
@@ -433,7 +433,7 @@ describe CNF_Converter do
 
     end
 
-    it 'should do lecture 7' do 
+    it 'should do lecture 7' do
       sentence = make_lec7_sen
       sentence1 = CNF_Converter.eliminate_equiv(sentence)
       sentence2 = CNF_Converter.eliminate_impl(sentence1)
@@ -497,6 +497,24 @@ describe CNF_Converter do
       sentence7 = CNF_Converter.translate_to_CNF(sentence6)
       clauses = CNF_Converter.build_clauses(sentence7)
       clauses.inspect.should == "[[#{@neg}(P(x)), Q(x)], [#{@neg}(P(x)), Q(sk(x))], [#{@neg}(P(x)), R(sk(x), x)], [#{@neg}(Q(x)), #{@neg}(Q(z)), #{@neg}(R(z, x)), P(x)]]"
+    end
+  end
+
+  describe 'standarize clauses' do
+    it 'should do it simple' do
+      x = V.new('x')
+      f_x = P.new('f', [x]).to_sentence
+      g_x = P.new('g', [x]).to_sentence
+      h_x = P.new('h', [x]).to_sentence
+      neg_h_x = S.new('neg', {sentence: h_x})
+
+      clauses = [[f_x], [g_x, f_x], [f_x, h_x], [h_x, g_x]]
+      CNF_Converter.standardize_clauses!(clauses)
+      clauses.inspect.should == "[[f(x)], [g(z), f(z)], [f(y), h(y)], [h(w), g(w)]]"
+
+      clauses = [[f_x], [g_x, f_x], [f_x, h_x], [neg_h_x, g_x]]
+      CNF_Converter.standardize_clauses!(clauses)
+      clauses.inspect.should == "[[f(x)], [g(z), f(z)], [f(y), h(y)], [#{@neg}(h(w)), g(w)]]"
     end
   end
 end
