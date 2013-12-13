@@ -111,6 +111,21 @@ class Sentence < Expression
       return "#{@vars[:quant].to_s}#{@vars[:variable].to_s}[#{@vars[:sentence].to_s}]"
     end
   end
+
+  def pretty_s
+    case(@type)
+    when "atomic"
+      return @vars[:predicate].to_s
+    when "equiv"
+      return "#{@vars[:term1].to_s} = #{@vars[:term2].to_s}"
+    when "neg"
+      return "\u00AC#{@vars[:sentence].to_s}"
+    when "op"
+      return "#{@vars[:sentence1].to_s} #{@vars[:op].to_s} #{@vars[:sentence2].to_s}"
+    when "quant"
+      return "#{@vars[:quant].to_s}#{@vars[:variable].to_s}[#{@vars[:sentence].to_s}]"
+    end
+  end
 end
 
 class Term < Expression
@@ -236,8 +251,11 @@ module CNF_Converter
     puts sentence7 if trace
 
     clauses = CNF_Converter.build_clauses(sentence7)
-    puts "----------- Step 8-11 get clauses    -------------" if trace
+    puts "----------- Step 8-10 get clauses    -------------" if trace
+    print_clauses(clauses) if trace
     CNF_Converter.standardize_clauses!(clauses) if trace
+
+    puts "----------- Step 11 standardize clauses    -------------" if trace
     print_clauses(clauses) if trace
 
     return clauses
@@ -588,7 +606,7 @@ module CNF_Converter
   def self.print_clauses(conjs)
     puts '%%%%%%%%%%%%%'
     conjs.each do |disj|
-      puts "#{disj}, "
+      puts "{#{disj.map(&:pretty_s).join(', ')}}, "
     end
     puts '%%%%%%%%%%%%%'
   end

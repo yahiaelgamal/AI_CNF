@@ -1,7 +1,7 @@
 
 require_relative './unification.rb'
 
-def make_lec7_sen
+def make_second_example
     x = V.new('x')
     y = V.new('y')
 
@@ -41,7 +41,7 @@ def make_lec7_sen
     return sentence
 end
 
-def make_second_example
+def make_first_example
   x = V.new('x')
   p_x = P.new('P', [x]).to_sentence
   neg_p_x = S.new('neg', {sentence: p_x} )
@@ -217,7 +217,7 @@ describe "Project" do
       end
 
       it 'should eliminate like lecture 7 slide 9' do
-        sentence = make_lec7_sen
+        sentence = make_second_example
         sentence.to_s.should == "#{@fa}x[(P(x)) <=> ((Q(x)) ^ (#{@te}y[(Q(y)) ^ (R(y, x))]))]"
 
         new_sen = CNF_Converter.eliminate_equiv(sentence)
@@ -225,7 +225,7 @@ describe "Project" do
       end
 
       it 'should not change the original sentence' do
-        sentence = make_lec7_sen
+        sentence = make_second_example
         old_string = sentence.to_s.dup
         new_sen = CNF_Converter.eliminate_equiv(sentence)
         new_string = sentence.to_s
@@ -287,7 +287,7 @@ describe "Project" do
 
       it 'should do it lke lecture 7 slide 10' do
         # ∀x[(P(x) ⇒ (Q(x) ∧ ∃y[Q(y) ∧ R(y, x)])) ∧ ((Q(x) ∧ ∃y[Q(y) ∧ R(y, x)]) ⇒ P(x))]
-        sentence = make_lec7_sen
+        sentence = make_second_example
         sentence1 = CNF_Converter.eliminate_equiv(sentence)
         sentence2 = CNF_Converter.eliminate_impl(sentence1)
         sentence2.to_s.should_not == sentence1.to_s
@@ -396,7 +396,7 @@ describe "Project" do
 
       it 'should do like lecture 7 slide 11' do
 
-        sentence = make_lec7_sen
+        sentence = make_second_example
         sentence1 = CNF_Converter.eliminate_equiv(sentence)
         sentence2 = CNF_Converter.eliminate_impl(sentence1)
         sentence3 = CNF_Converter.push_neg_inwards(sentence2)
@@ -428,7 +428,7 @@ describe "Project" do
       end
 
       it 'should do it like lecture 7' do
-        sentence = make_lec7_sen
+        sentence = make_second_example
         sentence1 = CNF_Converter.eliminate_equiv(sentence)
         sentence2 = CNF_Converter.eliminate_impl(sentence1)
         sentence3 = CNF_Converter.push_neg_inwards(sentence2)
@@ -455,7 +455,7 @@ describe "Project" do
       end
 
       it 'should do it like in the lecture' do
-        sentence = make_lec7_sen
+        sentence = make_second_example
         sentence1 = CNF_Converter.eliminate_equiv(sentence)
         sentence2 = CNF_Converter.eliminate_impl(sentence1)
         sentence3 = CNF_Converter.push_neg_inwards(sentence2)
@@ -484,7 +484,7 @@ describe "Project" do
       end
 
       it 'should do like lecture 7' do
-        sentence = make_lec7_sen
+        sentence = make_second_example
         sentence1 = CNF_Converter.eliminate_equiv(sentence)
         sentence2 = CNF_Converter.eliminate_impl(sentence1)
         sentence3 = CNF_Converter.push_neg_inwards(sentence2)
@@ -531,7 +531,7 @@ describe "Project" do
       end
 
       it 'should do lecture 7' do
-        sentence = make_lec7_sen
+        sentence = make_second_example
         sentence1 = CNF_Converter.eliminate_equiv(sentence)
         sentence2 = CNF_Converter.eliminate_impl(sentence1)
         sentence3 = CNF_Converter.push_neg_inwards(sentence2)
@@ -584,7 +584,7 @@ describe "Project" do
       end
 
       it 'should do the lecture' do
-        sentence = make_lec7_sen
+        sentence = make_second_example
         sentence1 = CNF_Converter.eliminate_equiv(sentence)
         sentence2 = CNF_Converter.eliminate_impl(sentence1)
         sentence3 = CNF_Converter.push_neg_inwards(sentence2)
@@ -615,7 +615,7 @@ describe "Project" do
       end
 
       it 'should do lecture 7' do
-        sentence = make_lec7_sen
+        sentence = make_second_example
         sentence1 = CNF_Converter.eliminate_equiv(sentence)
         sentence2 = CNF_Converter.eliminate_impl(sentence1)
         sentence3 = CNF_Converter.push_neg_inwards(sentence2)
@@ -630,7 +630,7 @@ describe "Project" do
     end
 
     it 'should do the second exampel' do
-      sentence = make_second_example
+      sentence = make_first_example
       sentence1 = CNF_Converter.eliminate_equiv(sentence)
       sentence2 = CNF_Converter.eliminate_impl(sentence1)
       sentence3 = CNF_Converter.push_neg_inwards(sentence2)
@@ -642,6 +642,9 @@ describe "Project" do
       CNF_Converter.standardize_clauses!(clauses)
       clauses.inspect.should == "[[P(sk())], [#{@neg}(Q(z)), #{@neg}(P(z))]]"
     end
-
+  end
+  it 'should work' do
+    #CNF_Converter.clause_form(make_first_example, true)
+    CNF_Converter.clause_form(make_second_example, true)
   end
 end
