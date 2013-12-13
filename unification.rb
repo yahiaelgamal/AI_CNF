@@ -203,6 +203,12 @@ end
 
 module CNF_Converter
   @@trace = false
+  def self.puts *vars
+    if @@trace
+      puts vars
+    end
+  end
+
   def self.clause_form(sentence, trace=false)
     @@trace = trace
     puts "Sentece is #{sentence}"
@@ -666,23 +672,54 @@ module CNF_Converter
   end
 end
 
-class Unifier
-  def unify e1, e2
+module Unifier
+
+  def self.unify e1, e2
     t = unify1 e1, e2, []
-    puts "RESULT"
-    #puts t.join "|"
     anchor t
   end
 
-  def listify e
+  def self.anchor t
+    return false if t == false
 
+    def self.anchor_recurse(term, sub, sub_with)
+      case term.class.name
+      when 'Variable'
+        if sub.include?(term)
+          return sub_with[sub.index(term)]
+        end
+      when 'Predicate'
+        new_terms = term.terms.map {|term_inside| anchor_recurse(term_inside, sub, sub_with)}
+        if new_terms != term.terms
+          return Predicate.new(term.name, new_terms)
+        end
+      when 'Constant'
+        if sub.include?(term)
+          return sub_with[sub.index(term)]
+        end
+      end
+      return term
+    end
+
+    changed = true
+    sub = t.map {|pair| pair[0]}
+    sub_with = t.map {|pair| pair[1]}
+    new_t = t
+    while changed
+      changed = false
+      new_t = new_t.map do |pair|
+        res = anchor_recurse(pair[1], sub, sub_with)
+        if res != pair[1]
+          changed = true
+          pair[1] = res
+        end
+        pair
+      end
+    end
+    return new_t
   end
 
-  def anchor t
-    t
-  end
-
-  def unify1 e1, e2, u
+  def self.unify1 e1, e2, u
     puts '-'*40
     p e1
     p e2
@@ -734,12 +771,11 @@ class Unifier
       t2 = e2.name
     end
     puts '-'*40
-
+    
     return (unify1( ee1, ee2, unify1( t1, t2, u)))
-    zzc
   end
 
-  def unify_var x, e, u
+  def self.unify_var x, e, u
     s = find_subst u, x
     if s && s != x
       return unify1 s, e, u
@@ -759,7 +795,7 @@ class Unifier
   end
 
   #checks if a variable x occurs deeply in term t
-  def occurs_deeply x, t
+  def self.occurs_deeply x, t
     if t.is_a? Variable
       t == x ? true : false
     elsif t.is_a? Constant
@@ -772,7 +808,7 @@ class Unifier
   end
 
   # finds a substitution for x in u
-  def find_subst u, x
+  def self.find_subst u, x
     u.each do |sub|
       if sub[0] == x
         return sub[1]
@@ -782,7 +818,7 @@ class Unifier
   end
 
   # applies substitutions of u on e
-  def subst u, e
+  def self.subst u, e
     u.each do |sub|
       if e.terms
         indx = e.terms.index(sub[0])
@@ -832,20 +868,20 @@ def test_unification
   p unifier.unify p1, p2
 
   #example 3
-  puts "="*50
-  puts "Example 3"
-  x = Variable.new 'x'
-  z = Variable.new 'z'
-  u = Variable.new 'u'
-  g1 = Predicate.new 'g', [x]
-  g2 = Predicate.new 'g', [z]
-  g3 = Predicate.new 'g', [g2]
-  g4 = Predicate.new 'g', [u]
-  f1 = Predicate.new 'f', [x, g1, x]
-  f2 = Predicate.new 'f', [g4, g3, z]
-  unifier = Unifier.new
-  p p1
-  p p2
-  p unifier.unify f1, f2
+  #puts "="*50
+  #puts "Example 3"
+  #x = Variable.new 'x'
+  #z = Variable.new 'z'
+  #u = Variable.new 'u'
+  #g1 = Predicate.new 'g', [x]
+  #g2 = Predicate.new 'g', [z]
+  #g3 = Predicate.new 'g', [g2]
+  #g4 = Predicate.new 'g', [u]
+  #f1 = Predicate.new 'f', [x, g1, x]
+  #f2 = Predicate.new 'f', [g4, g3, z]
+  #unifier = Unifier.new
+  #p p1
+  #p p2
+  #p unifier.unify f1, f2
 end
 #test_unification()
