@@ -327,7 +327,7 @@ describe CNF_Converter do
       # FAx [TEy [f(y)]] ^ FAy g(y)
       sen = S.new('op', {op: '^', sentence1: left, sentence2: right})
       new_sen = CNF_Converter.standardize_apart(sen, [])
-      new_sen.to_s.should == "(#{@fa}x[#{@te}y[f(y)]]) ^ (#{@fa}m[g(m)])"
+      new_sen.to_s.should == "(#{@fa}x[#{@te}y[f(y)]]) ^ (#{@fa}z[g(z)])"
     end
 
     it 'should do it like lecture 7' do
@@ -336,7 +336,7 @@ describe CNF_Converter do
       sentence2 = CNF_Converter.eliminate_impl(sentence1)
       sentence3 = CNF_Converter.push_neg_inwards(sentence2)
       sentence4 = CNF_Converter.standardize_apart(sentence3, [])
-      sentence4.to_s.should == "#{@fa}x[((#{@neg}(P(x))) v ((Q(x)) ^ (#{@te}y[(Q(y)) ^ (R(y, x))]))) ^ (((#{@neg}(Q(x))) v (#{@fa}m[(#{@neg}(Q(m))) v (#{@neg}(R(m, x)))])) v (P(x)))]"
+      sentence4.to_s.should == "#{@fa}x[((#{@neg}(P(x))) v ((Q(x)) ^ (#{@te}y[(Q(y)) ^ (R(y, x))]))) ^ (((#{@neg}(Q(x))) v (#{@fa}z[(#{@neg}(Q(z))) v (#{@neg}(R(z, x)))])) v (P(x)))]"
     end
   end
 
@@ -364,7 +364,7 @@ describe CNF_Converter do
       sentence3 = CNF_Converter.push_neg_inwards(sentence2)
       sentence4 = CNF_Converter.standardize_apart(sentence3, [])
       sentence5 = CNF_Converter.skolemize(sentence4, [], [])
-      sentence5.to_s.should == "#{@fa}x[((#{@neg}(P(x))) v ((Q(x)) ^ ((Q(sk(x))) ^ (R(sk(x), x))))) ^ (((#{@neg}(Q(x))) v (#{@fa}m[(#{@neg}(Q(m))) v (#{@neg}(R(m, x)))])) v (P(x)))]"
+      sentence5.to_s.should == "#{@fa}x[((#{@neg}(P(x))) v ((Q(x)) ^ ((Q(sk(x))) ^ (R(sk(x), x))))) ^ (((#{@neg}(Q(x))) v (#{@fa}z[(#{@neg}(Q(z))) v (#{@neg}(R(z, x)))])) v (P(x)))]"
     end
   end
 
@@ -394,7 +394,7 @@ describe CNF_Converter do
       sentence4 = CNF_Converter.standardize_apart(sentence3, [])
       sentence5 = CNF_Converter.skolemize(sentence4, [], [])
       sentence6 = CNF_Converter.discard_for_all(sentence5)
-      sentence6.to_s.should == "((#{@neg}(P(x))) v ((Q(x)) ^ ((Q(sk(x))) ^ (R(sk(x), x))))) ^ (((#{@neg}(Q(x))) v ((#{@neg}(Q(m))) v (#{@neg}(R(m, x))))) v (P(x)))"
+      sentence6.to_s.should == "((#{@neg}(P(x))) v ((Q(x)) ^ ((Q(sk(x))) ^ (R(sk(x), x))))) ^ (((#{@neg}(Q(x))) v ((#{@neg}(Q(z))) v (#{@neg}(R(z, x))))) v (P(x)))"
     end
   end
 
@@ -442,7 +442,7 @@ describe CNF_Converter do
       sentence5 = CNF_Converter.skolemize(sentence4, [], [])
       sentence6 = CNF_Converter.discard_for_all(sentence5)
       sentence7 = CNF_Converter.translate_to_CNF(sentence6)
-      sentence7.to_s.should == "(((#{@neg}(P(x))) v (Q(x))) ^ (((#{@neg}(P(x))) v (Q(sk(x)))) ^ ((#{@neg}(P(x))) v (R(sk(x), x))))) ^ (((#{@neg}(Q(x))) v ((#{@neg}(Q(m))) v (#{@neg}(R(m, x))))) v (P(x)))"
+      sentence7.to_s.should == "(((#{@neg}(P(x))) v (Q(x))) ^ (((#{@neg}(P(x))) v (Q(sk(x)))) ^ ((#{@neg}(P(x))) v (R(sk(x), x))))) ^ (((#{@neg}(Q(x))) v ((#{@neg}(Q(z))) v (#{@neg}(R(z, x))))) v (P(x)))"
     end
   end
 
@@ -496,7 +496,7 @@ describe CNF_Converter do
       sentence6 = CNF_Converter.discard_for_all(sentence5)
       sentence7 = CNF_Converter.translate_to_CNF(sentence6)
       clauses = CNF_Converter.build_clauses(sentence7)
-      clauses.inspect.should == "[[#{@neg}(P(x)), Q(x)], [#{@neg}(P(x)), Q(sk(x))], [#{@neg}(P(x)), R(sk(x), x)], [#{@neg}(Q(x)), #{@neg}(Q(m)), #{@neg}(R(m, x)), P(x)]]"
+      clauses.inspect.should == "[[#{@neg}(P(x)), Q(x)], [#{@neg}(P(x)), Q(sk(x))], [#{@neg}(P(x)), R(sk(x), x)], [#{@neg}(Q(x)), #{@neg}(Q(z)), #{@neg}(R(z, x)), P(x)]]"
     end
   end
 end

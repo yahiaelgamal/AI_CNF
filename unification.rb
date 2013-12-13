@@ -530,7 +530,8 @@ module CNF_Converter
     end
   end
 
-  # this is step kk
+  # this is step 8,9,10
+  # returns a list of lists (conjuctions of disjuncitons)
   def self.build_clauses(old_sentence)
     sentence = Marshal.load( Marshal.dump(old_sentence) )
     vars = sentence.vars
@@ -552,6 +553,9 @@ module CNF_Converter
     else
       throw "You must trnslate to CNF first"
     end
+  end
+
+  def self.standardize_clauses(clauses)
   end
 
   def self.get_sentences_rec(sentence, sentences, op)
@@ -577,7 +581,11 @@ module CNF_Converter
 
   def self.make_a_new_name(used_variables)
     names = used_variables.map{|var| var.name}
-    name = %w[m n o p q r s t u v w x y z].find {|name| !names.include?(name)}
+    options = %w[m n o p q r s t u v w x y z].reverse
+    (2..10).each do |suffix|
+      options += options.map{|s| s + "#{suffix}"}
+    end
+    name = options.find {|name| !names.include?(name)}
     return name
   end
 
