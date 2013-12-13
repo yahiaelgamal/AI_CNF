@@ -202,6 +202,38 @@ end
 
 
 module CNF_Converter
+  @@trace = false
+  def self.clause_form(sentence, trace=false)
+    @@trace = trace
+    puts "Sentece is #{sentence}"
+    sentence1 = CNF_Converter.eliminate_equiv(sentence)
+    puts "----------- Step 1 Eliminate <=> -------------"
+    puts sentence1
+    sentence2 = CNF_Converter.eliminate_impl(sentence1)
+    puts "----------- Step 2 Eliminate => -------------"
+    puts sentence2
+    sentence3 = CNF_Converter.push_neg_inwards(sentence2)
+    puts "----------- Step 3 push \u00AC inwards  -------------"
+    puts sentence3
+    sentence4 = CNF_Converter.standardize_apart(sentence3, [])
+    puts "----------- Step 4 standardize apart   -------------"
+    puts sentence4
+    sentence5 = CNF_Converter.skolemize(sentence4, [], [])
+    puts "----------- Step 5 skolemize   -------------"
+    puts sentence5
+    sentence6 = CNF_Converter.discard_for_all(sentence5)
+    puts "----------- Step 6 discard  \u2200   -------------"
+    puts sentence6
+    sentence7 = CNF_Converter.translate_to_CNF(sentence6)
+    puts "----------- Step 7 Translate into CNF   -------------"
+    puts sentence7
+    clauses = CNF_Converter.build_clauses(sentence7)
+    puts "----------- Step 8-11 get clauses    -------------"
+    CNF_Converter.standardize_clauses!(clauses)
+    print_clauses(clauses)
+    return clauses
+  end
+
   def self.eliminate_equiv(old_sentence)
     # incredibliy inefficient. but who cares, this is ruby after all
     sentence = Marshal.load( Marshal.dump(old_sentence) )
@@ -483,18 +515,6 @@ module CNF_Converter
         vars[:op] = '^'
         vars[:sentence1] = left
         vars[:sentence2] = right
-      elsif vars[:op] == '^' && vars[:sentence2].vars[:op] == 'v' && vars[:sentence1].vars[:op] != 'v'
-        phi = vars[:sentence1]
-        shi = vars[:sentence2].vars[:sentence1]
-        eita = vars[:sentence2].vars[:sentence2]
-
-        left = S.new('op', {op: '^', sentence1: phi, sentence2: shi})
-        right = S.new('op', {op: '^', sentence1: phi, sentence2: eita})
-
-        # TODO double check if this is desired
-        vars[:op] = 'v'
-        vars[:sentence1] = left
-        vars[:sentence2] = right
       elsif vars[:op] == 'v' && vars[:sentence1].vars[:op] == '^' && vars[:sentence2].vars[:op] != '^'
 
         phi = vars[:sentence2]
@@ -507,19 +527,21 @@ module CNF_Converter
         vars[:op] = '^'
         vars[:sentence2] = left
         vars[:sentence1] = right
-      elsif vars[:op] == '^' && vars[:sentence1].vars[:op] == 'v' && vars[:sentence2].vars[:op] != 'v'
-        phi = vars[:sentence2]
+      elsif vars[:op] == 'v' && vars[:sentence1].vars[:op] == '^' && vars[:sentence2].vars[:op] == '^'
+
+        phi = vars[:sentence1].vars[:sentence1]
         shi = vars[:sentence1].vars[:sentence2]
-        eita = vars[:sentence1].vars[:sentence1]
+        phi_2 = vars[:sentence2].vars[:sentence1]
+        eita = vars[:sentence2].vars[:sentence2]
 
-        left = S.new('op', {op: '^', sentence2: phi, sentence1: shi})
-        right = S.new('op', {op: '^', sentence2: phi, sentence1: eita})
+        if phi.to_s == phi_2.to_s
+          left = S.new('op', {op: 'v', sentence2: phi, sentence1: shi})
+          right = S.new('op', {op: 'v', sentence2: phi, sentence1: eita})
 
-        # TODO double check if this is desired
-        vars[:op] = 'v'
-        vars[:sentence2] = left
-        vars[:sentence1] = right
-      else
+          vars[:op] = '^'
+          vars[:sentence2] = left
+          vars[:sentence1] = right
+        end
       end
 
       vars[:sentence1] = translate_to_CNF(vars[:sentence1])
@@ -530,7 +552,8 @@ module CNF_Converter
     end
   end
 
-  # this is step kk
+  # this is step 8,9,10
+  # returns a list of lists (conjuctions of disjuncitons)
   def self.build_clauses(old_sentence)
     sentence = Marshal.load( Marshal.dump(old_sentence) )
     vars = sentence.vars
@@ -554,6 +577,53 @@ module CNF_Converter
     end
   end
 
+  # bang bang, (dangerous method, changes the array in place)
+  def self.standardize_clauses!(conjs)
+    # sub and sub_with represents the substitutions happened in the sentence
+    # so far. Sub is a list of old variables, sub_with is a list of the 
+    # corresponding substituted with variables
+    def self.standarize_sentence(old_sentence, used_vars, sub, sub_with)
+      sentence = Marshal.load( Marshal.dump(old_sentence) )
+      new_terms = sentence.vars[:predicate].terms.map do |term|
+        if term.is_a?(Predicate)
+          # work around
+          standarize_sentence(term.to_sentence, used_vars, sub, sub_with).vars[:predicate]
+        elsif sub.include?(term)
+          sub_with[sub.index(term)]
+        elsif used_vars.include?(term)
+          sub << term
+          new_var = Variable.new(make_a_new_name(used_vars))
+          sub_with << new_var
+          used_vars << new_var
+          new_var
+        else
+          sub << term
+          sub_with << term
+          used_vars << term
+          term
+        end
+      end
+      new_pred = Predicate.new(sentence.vars[:predicate].name, new_terms)
+      sentence.vars[:predicate] = new_pred
+      return sentence
+    end
+
+    used_variables = []
+    conjs.each do |disjs|
+      sub = []
+      sub_with = []
+      disjs.map! do |sentence|
+        case sentence.type
+        when 'atomic'
+          standarize_sentence(sentence, used_variables, sub, sub_with)
+        when 'neg'
+          sentence.vars[:sentence] = standarize_sentence(sentence.vars[:sentence], used_variables, sub, sub_with)
+          sentence
+        end
+      end
+    end
+  end
+
   def self.get_sentences_rec(sentence, sentences, op)
     vars = sentence.vars
     case sentence.type
@@ -573,11 +643,20 @@ module CNF_Converter
   end
 
   def self.print_clauses(conjs)
+    puts '%%%%%%%%%%%%%'
+    conjs.each do |disj|
+      puts "#{disj}, "
+    end
+    puts '%%%%%%%%%%%%%'
   end
 
   def self.make_a_new_name(used_variables)
     names = used_variables.map{|var| var.name}
-    name = %w[m n o p q r s t u v w x y z].find {|name| !names.include?(name)}
+    options = %w[m n o p q r s t u v w x y z].reverse
+    (2..10).each do |suffix|
+      options += options.map{|s| s + "#{suffix}"}
+    end
+    name = options.find {|name| !names.include?(name)}
     return name
   end
 
